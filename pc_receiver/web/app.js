@@ -22,6 +22,19 @@ function resetReference() {
   btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Set Zero`;
 }
 
+function setRate(hz) {
+  socket.emit('set_rate', hz);
+}
+
+// Acknowledge rate change from server
+socket.on('rate_ack', data => {
+  const hz = data.target_rate_hz;
+  set('syncRateOut', hz + ' Hz');
+  document.querySelectorAll('.rate-btn').forEach(b => {
+    b.classList.toggle('active', parseInt(b.textContent) === hz);
+  });
+});
+
 // ── Mode state ─────────────────────────────────────────────────
 let currentMode = 'phone';   // 'phone' | 'imu' | 'both'
 
@@ -317,8 +330,19 @@ const cubes = {
 };
 
 // ── Format helpers ─────────────────────────────────────────────
-const fmt  = (v, d=2) => (v >= 0 ? '+' : '') + v.toFixed(d);
-const set  = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+const fmt    = (v, d=2) => (v >= 0 ? '+' : '') + v.toFixed(d);
+const set    = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+
+/** Format a relative timestamp in seconds as "t=+12.345s" or wall clock. */
+function fmtTs(relTs, zeroed) {
+  if (!zeroed) {
+    // Show wall-clock time of last packet (local time)
+    const d = new Date();
+    return d.toTimeString().slice(0,8) + '.' + String(d.getMilliseconds()).padStart(3,'0');
+  }
+  const sign = relTs >= 0 ? '+' : '';
+  return `t=${sign}${relTs.toFixed(3)}s`;
+}
 
 function xyzHtml(x, y, z) {
   return `<span style="color:#FF5252">X ${fmt(x,3)}</span>
@@ -337,6 +361,27 @@ socket.on('sensor_data', data => {
     if (data.zeroed) {
       btn.classList.add('active');
       btn.textContent = '\u2713 Zeroed';
+    }
+  }
+
+  // Update output rate display (keep in sync on page refresh)
+  if (data.target_rate_hz !== undefined) {
+    set('syncRateOut', data.target_rate_hz + ' Hz');
+  }
+
+  // ── Sync status bar ───────────────────────────────────────
+  set('syncPhoneTs', p.connected ? fmtTs(p.rel_ts, data.zeroed) : 'no signal');
+  set('syncImuTs',   m.connected ? fmtTs(m.rel_ts, data.zeroed) : 'no signal');
+  set('syncMode',    data.zeroed ? 'relative (zeroed)' : 'absolute');
+
+  if (p.connected && m.connected) {
+    const off    = data.sync_offset_ms;
+    const offEl  = document.getElementById('syncOffset');
+    if (offEl) {
+      offEl.textContent = (off >= 0 ? '+' : '') + off.toFixed(1) + ' ms';
+      offEl.className   = 'sync-offset ' +
+        (Math.abs(off) < 20  ? 'good' :
+         Math.abs(off) < 100 ? 'ok'   : 'bad');
     }
   }
 

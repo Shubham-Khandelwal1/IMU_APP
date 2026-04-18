@@ -436,3 +436,45 @@ html, body {
   .delta-row           { grid-template-columns: 1fr; }
   .gauges-row          { gap: 6px; }
 }
+
+/* ── Sync status bar ──────────────────────────────────── */
+.sync-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 7px 24px;
+  background: rgba(255,255,255,0.02);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  overflow-x: auto;
+}
+.sync-item  { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.sync-label { color: var(--text3); font-weight: 500; letter-spacing: 0.5px; }
+.sync-ts    { color: var(--text2); font-weight: 600; }
+.sync-divider { color: var(--text3); }
+.sync-offset        { font-weight: 700; }
+.sync-offset.good   { color: var(--diff); }   /* |offset| < 20ms */
+.sync-offset.ok     { color: #FFD740; }        /* 20-100ms */
+.sync-offset.bad    { color: #FF5252; }        /* >100ms */
+
+/* ── Rate buttons ──────────────────────────────────── */
+.rate-btns { display: flex; align-items: center; gap: 3px; }
+.rate-btn {
+  padding: 2px 8px;
+  border-radius: 5px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.04);
+  color: var(--text2);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.rate-btn:hover { background: rgba(255,255,255,0.1); color: var(--text); }
+.rate-btn.active {
+  background: rgba(0,229,255,0.12);
+  border-color: rgba(0,229,255,0.4);
+  color: var(--phone);
+  font-weight: 600;
+}

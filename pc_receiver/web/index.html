@@ -61,6 +61,44 @@
     </div>
   </header>
 
+  <!-- ── Sync status bar ──────────────────────────────────── -->
+  <div class="sync-bar" id="syncBar">
+    <span class="sync-item">
+      <span class="sync-label">Phone</span>
+      <span class="sync-ts" id="syncPhoneTs">—</span>
+    </span>
+    <span class="sync-divider">|</span>
+    <span class="sync-item">
+      <span class="sync-label">IMU</span>
+      <span class="sync-ts" id="syncImuTs">—</span>
+    </span>
+    <span class="sync-divider">|</span>
+    <span class="sync-item">
+      <span class="sync-label">Sync offset</span>
+      <span class="sync-offset" id="syncOffset">—</span>
+    </span>
+    <span class="sync-divider">|</span>
+    <span class="sync-item" id="syncModeLabel">
+      <span class="sync-label">Mode</span>
+      <span class="sync-ts" id="syncMode">absolute</span>
+    </span>
+    <span class="sync-divider">|</span>
+    <span class="sync-item">
+      <span class="sync-label">Output rate</span>
+      <span class="sync-ts" id="syncRateOut">50 Hz</span>
+    </span>
+    <span class="sync-divider">|</span>
+    <span class="sync-item">
+      <div class="rate-btns">
+        <button class="rate-btn" onclick="setRate(10)">10</button>
+        <button class="rate-btn" onclick="setRate(25)">25</button>
+        <button class="rate-btn active" onclick="setRate(50)">50</button>
+        <button class="rate-btn" onclick="setRate(100)">100</button>
+        <span class="sync-label" style="margin-left:4px">Hz</span>
+      </div>
+    </span>
+  </div>
+
   <!-- ── Main content ────────────────────────────────────────── -->
   <main class="main" id="main">
 

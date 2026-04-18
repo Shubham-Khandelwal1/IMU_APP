@@ -42,6 +42,7 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
 phone_data = {
     "connected": False,
     "last_seen": 0,
+    "pc_ts":    0.0,    # time.perf_counter() at PC arrival
     "accel": [0.0, 0.0, 0.0],
     "gyro":  [0.0, 0.0, 0.0],
     "mag":   [0.0, 0.0, 0.0],
@@ -53,6 +54,7 @@ phone_data = {
 imu_data = {
     "connected": False,
     "last_seen": 0,
+    "pc_ts":    0.0,    # time.perf_counter() at PC arrival
     "accel": [0.0, 0.0, 0.0],
     "gyro":  [0.0, 0.0, 0.0],
     "mag":   [0.0, 0.0, 0.0],
@@ -61,13 +63,15 @@ imu_data = {
     "rate_hz": 0,
 }
 
-_lock = threading.Lock()
+_lock        = threading.Lock()
+target_rate_hz = 50    # output rate to browser — both sources decimated to this
 
 # ── Zero reference offsets ────────────────────────────────────────────────
 # When zeroed, all euler output = actual - offset (angle-wrapped to -180..+180)
 phone_offset = {"yaw": 0.0, "pitch": 0.0, "roll": 0.0}
 imu_offset   = {"yaw": 0.0, "pitch": 0.0, "roll": 0.0}
 zeroed       = False
+zero_pc_time = 0.0    # perf_counter() snapshot at the moment Set Zero was clicked
 
 
 def angle_diff(a: float, b: float) -> float:
@@ -218,6 +222,7 @@ def udp_listener(port: int):
                     phone_data.update({
                         "connected": True,
                         "last_seen": time.time(),
+                        "pc_ts":     time.perf_counter(),
                         "accel":  parsed.get("accel", [0, 0, 0]),
                         "gyro":   parsed.get("gyro",  [0, 0, 0]),
                         "mag":    parsed.get("mag",   [0, 0, 0]),
@@ -264,6 +269,7 @@ def serial_listener(port: str, baud: int):
                         imu_data.update({
                             "connected": True,
                             "last_seen": time.time(),
+                            "pc_ts":     time.perf_counter(),
                             "accel":  parsed.get("accel", [0, 0, 0]),
                             "gyro":   parsed.get("gyro",  [0, 0, 0]),
                             "euler":  parsed["euler"],
@@ -282,23 +288,33 @@ def serial_listener(port: str, baud: int):
 def broadcaster():
     while True:
         with _lock:
-            # Apply zero-reference offsets if active
+            rate_hz = target_rate_hz
+            now_pc  = time.perf_counter()
+
+            p_rel_ts = round(phone_data["pc_ts"] - zero_pc_time, 3) if zeroed else round(phone_data["pc_ts"], 3)
+            m_rel_ts = round(imu_data["pc_ts"]   - zero_pc_time, 3) if zeroed else round(imu_data["pc_ts"],   3)
+            sync_offset_ms = round((phone_data["pc_ts"] - imu_data["pc_ts"]) * 1000, 1)
+
             p_euler = apply_offset(phone_data["euler"], phone_offset) if zeroed else phone_data["euler"]
             m_euler = apply_offset(imu_data["euler"],   imu_offset)   if zeroed else imu_data["euler"]
 
             p_out = dict(phone_data)
             m_out = dict(imu_data)
-            p_out["euler"] = p_euler
-            m_out["euler"] = m_euler
+            p_out["euler"]  = p_euler
+            m_out["euler"]  = m_euler
+            p_out["rel_ts"] = p_rel_ts
+            m_out["rel_ts"] = m_rel_ts
 
             payload = {
-                "phone":  p_out,
-                "imu":    m_out,
-                "zeroed": zeroed,
-                "ts":     time.time(),
+                "phone":          p_out,
+                "imu":            m_out,
+                "zeroed":         zeroed,
+                "sync_offset_ms": sync_offset_ms,
+                "target_rate_hz": rate_hz,
+                "ts":             time.time(),
             }
         socketio.emit("sensor_data", payload)
-        eventlet.sleep(1 / 30)  # 30 fps to browser
+        eventlet.sleep(1.0 / max(rate_hz, 1))
 
 
 # ── Flask routes ───────────────────────────────────────────────────────────
@@ -321,9 +337,9 @@ def on_disconnect():
 
 @socketio.on("zero_reference")
 def on_zero():
-    """Capture current euler from both sources as the zero reference."""
-    global zeroed
+    global zeroed, zero_pc_time
     with _lock:
+        zero_pc_time          = time.perf_counter()
         phone_offset["yaw"]   = phone_data["euler"]["yaw"]
         phone_offset["pitch"] = phone_data["euler"]["pitch"]
         phone_offset["roll"]  = phone_data["euler"]["roll"]
@@ -331,16 +347,24 @@ def on_zero():
         imu_offset["pitch"]   = imu_data["euler"]["pitch"]
         imu_offset["roll"]    = imu_data["euler"]["roll"]
         zeroed = True
-    print(f"[Zero] Phone ref: yaw={phone_offset['yaw']:.1f} pitch={phone_offset['pitch']:.1f} roll={phone_offset['roll']:.1f}")
-    print(f"[Zero] IMU   ref: yaw={imu_offset['yaw']:.1f}   pitch={imu_offset['pitch']:.1f}   roll={imu_offset['roll']:.1f}")
+    print(f"[Zero] t=0 set. Phone ref yaw={phone_offset['yaw']:.1f} | IMU ref yaw={imu_offset['yaw']:.1f}")
 
 @socketio.on("reset_reference")
 def on_reset():
-    """Clear zero reference — return to absolute values."""
-    global zeroed
+    global zeroed, zero_pc_time
     with _lock:
-        zeroed = False
-    print("[Zero] Reference cleared — showing absolute values")
+        zeroed       = False
+        zero_pc_time = 0.0
+    print("[Zero] Cleared — showing absolute values")
+
+@socketio.on("set_rate")
+def on_set_rate(hz):
+    global target_rate_hz
+    hz = max(1, min(int(hz), 200))   # clamp 1-200 Hz
+    with _lock:
+        target_rate_hz = hz
+    print(f"[Rate] Output rate set to {hz} Hz")
+    socketio.emit("rate_ack", {"target_rate_hz": hz})
 
 
 # ── Entry point ────────────────────────────────────────────────────────────
@@ -351,9 +375,13 @@ def main():
     parser.add_argument("--baud",     type=int,  default=115200, help="Serial baud rate")
     parser.add_argument("--udp-port", type=int,  default=8765,  help="UDP port for phone data")
     parser.add_argument("--web-port", type=int,  default=5000,  help="Web server port")
+    parser.add_argument("--rate",     type=int,  default=50,    help="Output data rate to browser in Hz (default 50)")
     parser.add_argument("--no-serial",action="store_true",      help="Disable serial (phone only)")
     parser.add_argument("--no-udp",   action="store_true",      help="Disable UDP (IMU only)")
     args = parser.parse_args()
+
+    global target_rate_hz
+    target_rate_hz = args.rate
 
     print("=" * 44)
     print("     IMU Comparison Dashboard Server")
