@@ -3,12 +3,15 @@ package com.robomanipal.imusensor.ui.navigation
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Dashboard
-import androidx.compose.material.icons.filled.Sensors
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.ViewInAr
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
@@ -19,33 +22,29 @@ import com.robomanipal.imusensor.ui.components.NavItem
 import com.robomanipal.imusensor.ui.screens.*
 import com.robomanipal.imusensor.viewmodel.SensorViewModel
 import com.robomanipal.imusensor.viewmodel.StreamViewModel
+import kotlinx.coroutines.launch
 
 // ── Route constants ────────────────────────────────────────────────────────
 object Routes {
-    const val DASHBOARD   = "dashboard"
-    const val ORIENTATION = "orientation"
-    const val STREAM      = "stream"
-    const val SETTINGS    = "settings"
+    const val MAIN          = "main"
     const val SENSOR_DETAIL = "sensor/{type}"
     fun sensorDetail(type: String) = "sensor/$type"
 }
 
 private val bottomNavItems = listOf(
     NavItem(Icons.Default.Dashboard, "Home"),
-    NavItem(Icons.Default.Sensors,   "3D View"),
+    NavItem(Icons.Default.ViewInAr,  "3D View"),   // ← updated icon
     NavItem(Icons.Default.Wifi,      "Stream"),
     NavItem(Icons.Default.Settings,  "Settings"),
 )
 
-private val bottomNavRoutes = listOf(
-    Routes.DASHBOARD,
-    Routes.ORIENTATION,
-    Routes.STREAM,
-    Routes.SETTINGS,
-)
-
 /**
- * Root composable that wires navigation, bottom bar, and shared ViewModels.
+ * Root composable.
+ *
+ * Architecture:
+ *   NavHost
+ *     ├── "main"         → MainTabs  (HorizontalPager with swipe + bottom nav)
+ *     └── "sensor/{type}"→ SensorDetailScreen  (push, back arrow)
  */
 @Composable
 fun AppNavigation(modifier: Modifier = Modifier) {
@@ -53,78 +52,93 @@ fun AppNavigation(modifier: Modifier = Modifier) {
     val sensorVm: SensorViewModel = viewModel()
     val streamVm: StreamViewModel = viewModel()
 
-    // Track which bottom tab is selected
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route
+    NavHost(
+        navController      = navController,
+        startDestination   = Routes.MAIN,
+        modifier           = modifier,
+        enterTransition    = {
+            fadeIn(tween(280)) + slideInHorizontally { it / 3 }
+        },
+        exitTransition     = { fadeOut(tween(200)) },
+        popEnterTransition = {
+            fadeIn(tween(280)) + slideInHorizontally { -it / 3 }
+        },
+        popExitTransition  = {
+            fadeOut(tween(200)) + slideOutHorizontally { it / 3 }
+        },
+    ) {
+        // ── Main tabs (swipeable) ──────────────────────────────────────
+        composable(Routes.MAIN) {
+            MainTabs(
+                sensorVm  = sensorVm,
+                streamVm  = streamVm,
+                onPushDetail = { type -> navController.navigate(Routes.sensorDetail(type)) },
+            )
+        }
 
-    val selectedTab = bottomNavRoutes.indexOf(currentRoute).coerceAtLeast(0)
+        // ── Sensor detail (push screen) ────────────────────────────────
+        composable(
+            route     = Routes.SENSOR_DETAIL,
+            arguments = listOf(navArgument("type") { type = NavType.StringType }),
+        ) { entry ->
+            val sensorType = entry.arguments?.getString("type") ?: "accel"
+            SensorDetailScreen(
+                vm         = sensorVm,
+                sensorType = sensorType,
+                onBack     = { navController.popBackStack() },
+            )
+        }
+    }
+}
 
-    // Only show bottom bar on main tabs (not on sensor detail)
-    val showBottomBar = currentRoute in bottomNavRoutes
+/**
+ * The four swipeable tabs + bottom nav.
+ * HorizontalPager drives both swipe and tab-click navigation.
+ */
+@Composable
+private fun MainTabs(
+    sensorVm: SensorViewModel,
+    streamVm: StreamViewModel,
+    onPushDetail: (String) -> Unit,
+) {
+    val scope      = rememberCoroutineScope()
+    val pagerState = rememberPagerState(pageCount = { 4 })
 
-    Box(modifier = modifier.fillMaxSize()) {
-        // ── Nav Host ───────────────────────────────────────────────────
-        NavHost(
-            navController = navController,
-            startDestination = Routes.DASHBOARD,
-            enterTransition  = { fadeIn(tween(260)) + slideInHorizontally { it / 5 } },
-            exitTransition   = { fadeOut(tween(200)) },
-            popEnterTransition = { fadeIn(tween(260)) + slideInHorizontally { -it / 5 } },
-            popExitTransition  = { fadeOut(tween(200)) + slideOutHorizontally { it / 5 } },
-        ) {
-            composable(Routes.DASHBOARD) {
-                DashboardScreen(
-                    vm = sensorVm,
+    Box(modifier = Modifier.fillMaxSize()) {
+
+        // ── Swipeable pages ────────────────────────────────────────────
+        HorizontalPager(
+            state    = pagerState,
+            modifier = Modifier.fillMaxSize(),
+            // Disable swipe on Stream/Settings to avoid accidental dismissal
+            // while typing IP — enable everywhere for now, easy to restrict later
+            userScrollEnabled = true,
+        ) { page ->
+            when (page) {
+                0 -> DashboardScreen(
+                    vm          = sensorVm,
                     onSensorTap = { type ->
                         if (type == "orientation") {
-                            // Switch to orientation tab
-                            navController.navigate(Routes.ORIENTATION) {
-                                popUpTo(Routes.DASHBOARD) { inclusive = false }
-                                launchSingleTop = true
-                            }
+                            scope.launch { pagerState.animateScrollToPage(1) }
                         } else {
-                            navController.navigate(Routes.sensorDetail(type))
+                            onPushDetail(type)
                         }
                     },
                 )
-            }
-            composable(Routes.ORIENTATION) {
-                OrientationScreen(vm = sensorVm)
-            }
-            composable(Routes.STREAM) {
-                StreamScreen(vm = streamVm)
-            }
-            composable(Routes.SETTINGS) {
-                SettingsScreen(vm = sensorVm)
-            }
-            composable(
-                route = Routes.SENSOR_DETAIL,
-                arguments = listOf(navArgument("type") { type = NavType.StringType }),
-            ) { entry ->
-                val sensorType = entry.arguments?.getString("type") ?: "accel"
-                SensorDetailScreen(
-                    vm = sensorVm,
-                    sensorType = sensorType,
-                    onBack = { navController.popBackStack() },
-                )
+                1 -> OrientationScreen(vm = sensorVm)
+                2 -> StreamScreen(vm = streamVm)
+                3 -> SettingsScreen(vm = sensorVm)
             }
         }
 
         // ── Bottom navigation ──────────────────────────────────────────
-        if (showBottomBar) {
-            AnimatedNavBar(
-                items = bottomNavItems,
-                selectedIndex = selectedTab,
-                onItemSelected = { idx ->
-                    val route = bottomNavRoutes[idx]
-                    navController.navigate(route) {
-                        popUpTo(Routes.DASHBOARD) { saveState = true }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-                },
-                modifier = Modifier.align(androidx.compose.ui.Alignment.BottomCenter),
-            )
-        }
+        AnimatedNavBar(
+            items         = bottomNavItems,
+            selectedIndex = pagerState.currentPage,
+            onItemSelected = { idx ->
+                scope.launch { pagerState.animateScrollToPage(idx) }
+            },
+            modifier = Modifier.align(Alignment.BottomCenter),
+        )
     }
 }

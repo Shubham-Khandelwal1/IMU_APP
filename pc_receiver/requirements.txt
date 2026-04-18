@@ -1,2 +1,4 @@
-# Optional dependency — only needed for --plot mode
-matplotlib
+flask
+flask-socketio
+eventlet
+pyserial
