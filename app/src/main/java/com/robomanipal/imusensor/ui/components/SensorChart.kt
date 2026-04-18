@@ -92,13 +92,6 @@ fun SensorChart(
         // ── Draw each series (glow → line) ─────────────────────────────
         fun drawSeries(data: List<Float>, color: Color) {
             val path = buildPath(data) ?: return
-            // Glow pass (wide + transparent)
-            drawPath(
-                path,
-                color.copy(alpha = 0.25f),
-                style = Stroke(width = 6.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round),
-            )
-            // Sharp pass
             drawPath(
                 path,
                 color,

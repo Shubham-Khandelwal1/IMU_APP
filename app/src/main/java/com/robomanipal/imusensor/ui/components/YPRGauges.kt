@@ -1,122 +1,142 @@
 package com.robomanipal.imusensor.ui.components
 
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.robomanipal.imusensor.ui.theme.SensorValueFont
+import kotlin.math.cos
+import kotlin.math.sin
 
 /**
- * A single semi-circular gauge that displays an angle value in degrees.
- * Features a gradient-filled arc, large degree readout, and label.
+ * Semi-circular gauge — no glow, clean sharp arc.
+ *
+ * @param displayValue  Raw degree value shown as text (e.g. -12.3)
+ * @param arcFraction   0..1 fraction for arc fill (computed by caller)
+ * @param label         Caption below the gauge
+ * @param color         Accent color for arc and label
+ * @param rangeLabel    Small range hint (e.g. "±90°")
  */
 @Composable
 fun AngleGauge(
-    value: Float,
+    displayValue: Float,
+    arcFraction: Float,
     label: String,
-    minValue: Float,
-    maxValue: Float,
     color: Color,
     modifier: Modifier = Modifier,
+    rangeLabel: String = "",
 ) {
-    val animated by animateFloatAsState(
-        targetValue = value,
-        animationSpec = spring(dampingRatio = 0.75f, stiffness = 120f),
-        label = "gaugeVal",
+    val animatedDisplay by animateFloatAsState(
+        targetValue   = displayValue,
+        animationSpec = spring(dampingRatio = 0.72f, stiffness = 150f),
+        label         = "gaugeDisplay",
     )
+    val animatedFraction by animateFloatAsState(
+        targetValue   = arcFraction.coerceIn(0f, 1f),
+        animationSpec = spring(dampingRatio = 0.72f, stiffness = 150f),
+        label         = "gaugeFraction",
+    )
+
+    // Entrance fade
+    var entered by remember { mutableStateOf(false) }
+    val enterAlpha by animateFloatAsState(
+        targetValue   = if (entered) 1f else 0f,
+        animationSpec = tween(500),
+        label         = "gaugeEnter",
+    )
+    LaunchedEffect(Unit) { entered = true }
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = modifier,
+        modifier = modifier.graphicsLayer { alpha = enterAlpha },
     ) {
-        Box(contentAlignment = Alignment.Center) {
+        // The Canvas sizes itself to fill the column's available width,
+        // constrained to a square via aspectRatio(1f).
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(1f),
+        ) {
             Canvas(
                 modifier = Modifier
-                    .size(110.dp)
-                    .padding(8.dp),
+                    .fillMaxSize()
+                    .padding(10.dp),
             ) {
-                val strokeWidth = 8.dp.toPx()
-                val radius = (size.minDimension - strokeWidth) / 2f
-                val topLeft = Offset(
-                    (size.width - radius * 2) / 2f,
-                    (size.height - radius * 2) / 2f,
-                )
-                val arcSize = Size(radius * 2, radius * 2)
+                val sw    = 8.dp.toPx()
+                val r     = (size.minDimension - sw) / 2f
+                val cx    = size.width  / 2f
+                val cy    = size.height / 2f
+                val tl    = Offset(cx - r, cy - r)
+                val arcSz = Size(r * 2f, r * 2f)
 
                 val startAngle = 135f
                 val totalSweep = 270f
+                val valueSweep = totalSweep * animatedFraction
 
-                // Track arc (background)
+                // Tick marks
+                drawTicks(cx, cy, r, sw, totalSweep, startAngle, color)
+
+                // Background track
                 drawArc(
-                    color = Color.White.copy(alpha = 0.07f),
+                    color      = Color.White.copy(alpha = 0.07f),
                     startAngle = startAngle,
                     sweepAngle = totalSweep,
-                    useCenter = false,
-                    topLeft = topLeft,
-                    size = arcSize,
-                    style = Stroke(width = strokeWidth, cap = StrokeCap.Round),
+                    useCenter  = false,
+                    topLeft    = tl,
+                    size       = arcSz,
+                    style      = Stroke(sw, cap = StrokeCap.Round),
                 )
 
-                // Value arc (filled)
-                val fraction = ((animated - minValue) / (maxValue - minValue)).coerceIn(0f, 1f)
-                val valueSweep = totalSweep * fraction
+                // Value arc — clean, no glow
+                if (valueSweep > 0.5f) {
+                    drawArc(
+                        color      = color,
+                        startAngle = startAngle,
+                        sweepAngle = valueSweep,
+                        useCenter  = false,
+                        topLeft    = tl,
+                        size       = arcSz,
+                        style      = Stroke(sw, cap = StrokeCap.Round),
+                    )
 
-                drawArc(
-                    brush = Brush.sweepGradient(
-                        colors = listOf(
-                            color.copy(alpha = 0.6f),
-                            color,
-                            color.copy(alpha = 0.8f),
-                        ),
-                    ),
-                    startAngle = startAngle,
-                    sweepAngle = valueSweep,
-                    useCenter = false,
-                    topLeft = topLeft,
-                    size = arcSize,
-                    style = Stroke(width = strokeWidth, cap = StrokeCap.Round),
-                )
-
-                // Glow on the value arc
-                drawArc(
-                    color = color.copy(alpha = 0.2f),
-                    startAngle = startAngle,
-                    sweepAngle = valueSweep,
-                    useCenter = false,
-                    topLeft = topLeft,
-                    size = arcSize,
-                    style = Stroke(width = strokeWidth + 6.dp.toPx(), cap = StrokeCap.Round),
-                )
+                    // Simple endpoint dot (no halo)
+                    val endRad = Math.toRadians((startAngle + valueSweep).toDouble())
+                    val dotX   = cx + r * cos(endRad).toFloat()
+                    val dotY   = cy + r * sin(endRad).toFloat()
+                    drawCircle(Color.White, 3.dp.toPx(), Offset(dotX, dotY))
+                }
             }
 
-            // Degree text centred inside the arc
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            // Degree text centred in the arc
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.offset(y = 4.dp),
+            ) {
                 Text(
-                    text = "%.1f".format(animated),
+                    text       = if (displayValue >= 0) "+%.1f".format(animatedDisplay)
+                                 else "%.1f".format(animatedDisplay),
                     fontFamily = SensorValueFont,
-                    fontSize = 20.sp,
+                    fontSize   = 16.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White.copy(alpha = 0.95f),
+                    color      = Color.White.copy(alpha = 0.96f),
                 )
                 Text(
-                    text = "°",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Normal,
-                    color = color.copy(alpha = 0.7f),
+                    text       = "°",
+                    fontSize   = 11.sp,
+                    color      = color.copy(alpha = 0.65f),
+                    lineHeight = 10.sp,
                 )
             }
         }
@@ -124,17 +144,59 @@ fun AngleGauge(
         Spacer(Modifier.height(2.dp))
 
         Text(
-            text = label,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = color.copy(alpha = 0.85f),
-            letterSpacing = 1.sp,
+            text          = label,
+            fontSize      = 11.sp,
+            fontWeight    = FontWeight.Bold,
+            color         = color,
+            letterSpacing = 2.sp,
+        )
+
+        if (rangeLabel.isNotEmpty()) {
+            Text(
+                text          = rangeLabel,
+                fontSize      = 9.sp,
+                color         = Color.White.copy(alpha = 0.25f),
+                letterSpacing = 0.5.sp,
+            )
+        }
+    }
+}
+
+/** Subtle radial tick marks around the gauge arc — no glow. */
+private fun DrawScope.drawTicks(
+    cx: Float, cy: Float, r: Float,
+    strokeWidth: Float, totalSweep: Float, startAngle: Float,
+    color: Color,
+    tickCount: Int = 9,
+) {
+    val outerR = r + strokeWidth / 2f + 1.5.dp.toPx()
+    val innerR = outerR - strokeWidth * 0.65f
+
+    for (i in 0..tickCount) {
+        val frac    = i.toFloat() / tickCount
+        val angle   = startAngle + totalSweep * frac
+        val rad     = Math.toRadians(angle.toDouble())
+        val c       = cos(rad).toFloat()
+        val s       = sin(rad).toFloat()
+        val isMajor = i % (tickCount / 2) == 0
+        drawLine(
+            color       = if (isMajor) color.copy(alpha = 0.35f)
+                          else Color.White.copy(alpha = 0.09f),
+            start       = Offset(cx + innerR * c, cy + innerR * s),
+            end         = Offset(cx + outerR * c, cy + outerR * s),
+            strokeWidth = if (isMajor) 1.5.dp.toPx() else 1.dp.toPx(),
+            cap         = StrokeCap.Round,
         )
     }
 }
 
 /**
- * Row of three YPR gauges.
+ * Row of three YPR gauges — each takes equal weight so they never overflow.
+ *
+ * Ranges:
+ *   YAW   -180 … +180  → arc 0..1
+ *   PITCH  -90 … +90   → arc 0..1
+ *   ROLL  -180 … +180  → arc 0..1
  */
 @Composable
 fun YPRGauges(
@@ -144,30 +206,33 @@ fun YPRGauges(
     modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = modifier.fillMaxWidth(),
+        modifier              = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceEvenly,
-        verticalAlignment = Alignment.CenterVertically,
+        verticalAlignment     = Alignment.CenterVertically,
     ) {
         AngleGauge(
-            value    = (yaw + 360f) % 360f,   // normalise to 0-360
-            label    = "YAW",
-            minValue = 0f,
-            maxValue = 360f,
-            color    = Color(0xFF00E5FF),
+            displayValue = yaw,
+            arcFraction  = (yaw + 180f) / 360f,
+            label        = "YAW",
+            color        = Color(0xFF00E5FF),
+            rangeLabel   = "±180°",
+            modifier     = Modifier.weight(1f),
         )
         AngleGauge(
-            value    = pitch + 90f,            // shift so -90..+90 → 0..180
-            label    = "PITCH",
-            minValue = 0f,
-            maxValue = 180f,
-            color    = Color(0xFFAA00FF),
+            displayValue = pitch,
+            arcFraction  = (pitch + 90f) / 180f,
+            label        = "PITCH",
+            color        = Color(0xFFAA00FF),
+            rangeLabel   = "±90°",
+            modifier     = Modifier.weight(1f),
         )
         AngleGauge(
-            value    = roll + 180f,            // shift so -180..+180 → 0..360
-            label    = "ROLL",
-            minValue = 0f,
-            maxValue = 360f,
-            color    = Color(0xFFFF6D00),
+            displayValue = roll,
+            arcFraction  = (roll + 180f) / 360f,
+            label        = "ROLL",
+            color        = Color(0xFFFF6D00),
+            rangeLabel   = "±180°",
+            modifier     = Modifier.weight(1f),
         )
     }
 }
