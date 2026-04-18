@@ -20,29 +20,38 @@ A precision IMU testing toolkit built for hobbyist robotics and embedded systems
    - [Zero Reference System](#zero-reference-system)
    - [Rate Matching](#rate-matching)
    - [Sync Monitoring](#sync-monitoring)
-5. [Python Server](#python-server)
+5. [Research Dashboard](#research-dashboard)
+   - [How to Record](#how-to-record)
+   - [RMS Noise and Statistics](#rms-noise-and-statistics)
+   - [Allan Deviation](#allan-deviation)
+   - [Bias Drift](#bias-drift)
+   - [Noise Parameters](#noise-parameters)
+6. [Python Server](#python-server)
    - [Data Sources](#data-sources)
    - [Serial Parser](#serial-parser)
    - [WebSocket Broadcaster](#websocket-broadcaster)
-6. [Setup & Running](#setup--running)
+   - [Analysis Ring Buffer](#analysis-ring-buffer)
+7. [Setup & Running](#setup--running)
    - [Android App Setup](#android-app-setup)
    - [PC Server Setup](#pc-server-setup)
    - [Connecting Phone to Dashboard](#connecting-phone-to-dashboard)
    - [Connecting Hobby IMU](#connecting-hobby-imu)
-7. [Network Setup](#network-setup)
-8. [STM32 Serial Format](#stm32-serial-format)
-9. [Project Structure](#project-structure)
+8. [Network Setup](#network-setup)
+9. [STM32 Serial Format](#stm32-serial-format)
+10. [Project Structure](#project-structure)
+11. [Key Design Decisions](#key-design-decisions)
 
 ---
 
 ## Overview
 
-This project has two components that work together:
+This project has three components that work together:
 
 | Component | What it does |
 |-----------|-------------|
 | **Android App** | Reads phone IMU sensors in real time, visualizes them with a premium UI, and streams data to a PC over UDP |
-| **PC Web Dashboard** | Receives data from the phone (UDP) and a hobby IMU (serial/USB CDC), displays both, and enables precise comparison |
+| **PC Web Dashboard** | Receives data from the phone (UDP) and a hobby IMU (serial/USB CDC), displays both, and enables comparison |
+| **Research Dashboard** | Dedicated page for IMU characterization: Allan deviation (OADEV), RMS noise, bias instability, and drift plots |
 
 **Primary use case:** You have a hobby IMU (e.g. BNO085 on an STM32 dev board). You want to verify its accuracy, drift characteristics, and noise floor against a reference. The phone IMU serves as that high-accuracy reference — phone IMUs are consumer-grade MEMS sensors running factory-calibrated fusion algorithms, making them excellent benchmarks for hobbyist hardware.
 
@@ -51,36 +60,41 @@ This project has two components that work together:
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                     ANDROID PHONE                           │
-│                                                             │
-│  SensorManager ──► SensorRepository ──► SensorViewModel    │
-│  (Accel/Gyro/     (Quaternion→Euler    (StateFlow to UI)   │
-│   Mag/RotVec)      conversion)                              │
-│                          │                                  │
-│                     UDPStreamer ──► UDP packets (CSV/JSON)  │
-└────────────────────────────┬────────────────────────────────┘
-                             │ Wi-Fi (same network)
-                             ▼ port 8765
-┌─────────────────────────────────────────────────────────────┐
-│                     PC - server.py                          │
-│                                                             │
-│  [UDP Thread]  ──► phone_data dict                         │
-│  [Serial Thread] ──► imu_data dict    ◄── STM32 USB CDC    │
-│  [Broadcaster] ──► WebSocket @ 1/Hz                        │
-│  [Flask]       ──► serves web/                             │
-└────────────────────────────┬────────────────────────────────┘
-                             │ WebSocket (localhost)
-                             ▼ port 5000
-┌─────────────────────────────────────────────────────────────┐
-│                  BROWSER - index.html                       │
-│                                                             │
-│  SocketIO client ──► data handler                          │
-│  Canvas charts (RollingChart)                              │
-│  Canvas gauges  (ArcGauge)                                 │
-│  Three.js cubes (Cube3D)                                   │
-│  Mode: Phone / IMU / Compare                               │
-└─────────────────────────────────────────────────────────────┘
++-------------------------------------------------------------+
+|                     ANDROID PHONE                           |
+|                                                             |
+|  SensorManager --> SensorRepository --> SensorViewModel     |
+|  (Accel/Gyro/      (Quaternion->Euler    (StateFlow to UI)  |
+|   Mag/RotVec)       conversion)                             |
+|                          |                                  |
+|                     UDPStreamer --> UDP packets (CSV/JSON)   |
++----------------------------+--------------------------------+
+                             | Wi-Fi (same network)
+                             v port 8765
++-------------------------------------------------------------+
+|                     PC - server.py                          |
+|                                                             |
+|  [UDP Thread]   --> phone_data dict --> phone_buffer        |
+|  [Serial Thread]--> imu_data dict   --> imu_buffer          |
+|            ^ STM32 USB CDC                                  |
+|  [Broadcaster]  --> WebSocket @ 1/rate_hz                   |
+|  [Flask]        --> serves web/ (index + analysis)          |
++----------------------------+--------------------------------+
+                             | WebSocket (localhost)
+                             v port 5000
++-------------------------------------------------------------+
+|  BROWSER                                                     |
+|                                                             |
+|  index.html  (Live Dashboard)                               |
+|    SocketIO client --> data handler                          |
+|    Canvas RollingChart, ArcGauge, Three.js Cube3D           |
+|    Mode: Phone / IMU / Compare                              |
+|                                                             |
+|  analysis.html  (Research Dashboard)  <- /analysis route    |
+|    Overlapping Allan Deviation (OADEV) log-log Canvas       |
+|    RMS noise, Std Dev, Bias per axis table                  |
+|    Bias drift rolling mean chart                            |
++-------------------------------------------------------------+
 ```
 
 ---
@@ -116,7 +130,7 @@ The app uses a `HorizontalPager` for tab navigation — you can swipe between sc
 
 #### 2. 3D View (Orientation)
 - **3D Wireframe Cube**: A wireframe box rendered on Canvas with perspective projection, rotating in real time using Euler angles derived from the rotation vector sensor. XYZ axis lines are drawn in red/green/blue.
-- **YPR Arc Gauges**: Three semi-circular arc gauges (270° sweep) for Yaw, Pitch, Roll with:
+- **YPR Arc Gauges**: Three semi-circular arc gauges (270 degree sweep) for Yaw, Pitch, Roll with:
   - Correct display values (raw degrees, not shifted) using `displayValue` / `arcFraction` separation
   - Tick marks at major/minor intervals
   - Animated endpoint dot
@@ -124,7 +138,7 @@ The app uses a `HorizontalPager` for tab navigation — you can swipe between sc
   - Range labels (±180°, ±90°)
 - **Euler Angles Readout**: Large numeric values with +/- prefix and colored vertical badge strips
 - **Quaternion Display**: All four quaternion components (w, x, y, z) in monospace font
-- **Rotation Matrix**: Full 3×3 rotation matrix rendered with AnimatedVisibility entrance
+- **Rotation Matrix**: Full 3x3 rotation matrix rendered with AnimatedVisibility entrance
 
 #### 3. Stream
 - Target IP address and port configuration
@@ -141,31 +155,33 @@ The app uses a `HorizontalPager` for tab navigation — you can swipe between sc
 
 ```
 Android SensorManager
-    │
-    ├── TYPE_ACCELEROMETER   → ax, ay, az  (m/s²)
-    ├── TYPE_GYROSCOPE       → gx, gy, gz  (rad/s)
-    ├── TYPE_MAGNETIC_FIELD  → mx, my, mz  (μT)
-    └── TYPE_ROTATION_VECTOR → quaternion (w, x, y, z)
-                                    │
+    |
+    +-- TYPE_ACCELEROMETER   -> ax, ay, az  (m/s^2)
+    +-- TYPE_GYROSCOPE       -> gx, gy, gz  (rad/s)
+    +-- TYPE_MAGNETIC_FIELD  -> mx, my, mz  (uT)
+    +-- TYPE_ROTATION_VECTOR -> quaternion (w, x, y, z)
+                                    |
                               SensorMath.kt
-                                    │
+                                    |
                     quaternionToEuler() using atan2 / asin
-                                    │
-                    Yaw (-180..+180°), Pitch (-90..+90°), Roll (-180..+180°)
+                                    |
+                    Yaw (-180..+180 degrees)
+                    Pitch (-90..+90 degrees)
+                    Roll (-180..+180 degrees)
 ```
 
 **Quaternion to Euler conversion:**
 ```kotlin
 val sinr_cosp = 2f * (w*x + y*z)
 val cosr_cosp = 1f - 2f * (x*x + y*y)
-roll = atan2(sinr_cosp, cosr_cosp)           // -π..+π
+roll = atan2(sinr_cosp, cosr_cosp)           // -pi..+pi
 
 val sinp = 2f * (w*y - z*x)
-pitch = if (abs(sinp) >= 1f) copySign(π/2, sinp) else asin(sinp)  // -π/2..+π/2
+pitch = if (abs(sinp) >= 1f) copySign(pi/2, sinp) else asin(sinp)  // -pi/2..+pi/2
 
 val siny_cosp = 2f * (w*z + x*y)
 val cosy_cosp = 1f - 2f * (y*y + z*z)
-yaw = atan2(siny_cosp, cosy_cosp)            // -π..+π
+yaw = atan2(siny_cosp, cosy_cosp)            // -pi..+pi
 ```
 All values converted to degrees before display and streaming.
 
@@ -215,7 +231,9 @@ Tap **Export CSV** or **Export JSON** in Settings. Files are saved to:
 | Serial/USB CDC | pyserial |
 | Frontend | Vanilla HTML + CSS + JavaScript |
 | 3D rendering | Three.js (CDN) |
-| Charts | Custom Canvas API (no chart library) |
+| Live charts | Custom Canvas API `RollingChart` class |
+| Gauges | Custom Canvas API `ArcGauge` class |
+| Analysis charts | Custom Canvas log-log OADEV renderer |
 | WebSocket client | Socket.IO JS client (CDN) |
 | Fonts | Google Fonts — Inter + JetBrains Mono |
 
@@ -240,13 +258,13 @@ Shows data arriving from the STM32 over serial/USB CDC:
 #### Compare (IMU + Phone)
 The core comparison mode:
 - **Two 3D cubes side by side** — phone (cyan) and hobby IMU (orange) rotating independently but simultaneously. Visual misalignment is immediately obvious.
-- **ΔYaw, ΔPitch, ΔRoll cards** — live angular error with 60-sample rolling charts, showing how the error evolves over time
-- **Comparison table** — phone value | IMU value | Δ error, for all three Euler angles
+- **DeltaYaw, DeltaPitch, DeltaRoll cards** — live angular error with 60-sample rolling charts, showing how the error evolves over time
+- **Comparison table** — phone value | IMU value | Delta error, for all three Euler angles
 - **Overlaid Yaw chart** — both sources on the same time axis in different colors
 
 ### Zero Reference System
 
-A critical feature for fair comparison. Both IMUs have independent absolute orientations when powered on — the phone might show Yaw=127° while the IMU shows Yaw=34° even if physically aligned. The zero reference solves this.
+A critical feature for fair comparison. Both IMUs have independent absolute orientations when powered on — the phone might show Yaw=127 degrees while the IMU shows Yaw=34 degrees even if physically aligned. The zero reference solves this.
 
 **How it works:**
 1. Place both IMUs in the same physical orientation
@@ -299,9 +317,9 @@ The sync bar below the header shows real-time synchronisation status:
 | **Output rate** | Active broadcaster rate |
 
 Sync offset color coding:
-- 🟢 **Green** `< 20ms` — excellent sync
-- 🟡 **Yellow** `20–100ms` — acceptable (USB or network latency)
-- 🔴 **Red** `> 100ms` — significant sync issue (check USB CDC driver or Wi-Fi)
+- Green `< 20ms` — excellent sync
+- Yellow `20–100ms` — acceptable (USB or network latency)
+- Red `> 100ms` — significant sync issue (check USB CDC driver or Wi-Fi)
 
 **Timestamps** switch automatically:
 - **Before zero**: wall-clock time (`HH:MM:SS.mmm`) of last packet arrival
@@ -311,25 +329,119 @@ Both sources use `time.perf_counter()` (PC high-resolution clock) as the common 
 
 ---
 
+## Research Dashboard
+
+Access at **`http://localhost:5000/analysis`** or via the purple **Research** button in the main dashboard header.
+
+This page characterizes IMU noise statistically — essential for comparing cheap hobby sensors against a reference and understanding their real-world suitability for applications like robotics or flight control.
+
+### How to Record
+
+1. Start streaming from phone and/or connect the STM32 hobby IMU
+2. Place both sensors **completely flat and stationary** — motion during recording will corrupt the analysis
+3. Select source: **Phone**, **IMU**, or **Both** (side-by-side comparison)
+4. Click **Start Recording** — a red pulsing dot and timer appear
+5. Wait **60–120 seconds** minimum (longer = more decades of tau in Allan plot = better characterization)
+6. Click **Stop** → **Analyze**
+
+The server stores samples in an in-memory ring buffer (up to 12,000 samples = ~4 minutes at 50 Hz). Data is transferred to the browser as a raw JSON array and all computation happens client-side in JavaScript — this avoids blocking the server's eventlet loop during heavy computation.
+
+### RMS Noise and Statistics
+
+For each source, three summary statistics are shown for the total gyroscope signal and broken down per X/Y/Z axis:
+
+| Metric | Formula | What it tells you |
+|--------|---------|-------------------|
+| **RMS Noise** | `sqrt(mean(x^2))` | Total signal energy including bias |
+| **Std Dev** | `sqrt(mean((x - mean(x))^2))` | Noise amplitude around the mean |
+| **Bias** | `mean(x)` | Static offset — non-zero for uncalibrated sensors |
+
+All values in **degrees/s** (gyro axes are converted from rad/s on arrival).
+
+A good quality IMU at rest should show:
+- RMS noise approximately equal to Std Dev (low bias)
+- Std Dev < 0.01 deg/s for a top-tier sensor; typically 0.02–0.1 deg/s for BNO-class sensors
+
+### Allan Deviation
+
+The **Overlapping Allan Deviation (OADEV)** is the industry-standard method for characterizing IMU noise across time scales. Computed from the gyro-Z axis of the stationary recording.
+
+**Algorithm** (implemented in `analysis.js`):
+```js
+// Integrate gyro to angle (phase)
+phase[i+1] = phase[i] + data[i] * dt;
+
+// For each cluster size m = 1, 2, 4, ... N/4:
+const tau = m * dt;
+for (let j = 0; j < N - 2*m; j++) {
+  const d = phase[j + 2*m] - 2*phase[j + m] + phase[j];
+  sum += d * d;
+}
+const AVAR = sum / (2 * tau*tau * count);
+const ADEV = Math.sqrt(AVAR);
+```
+
+The resulting log-log plot reveals:
+
+```
+ADEV (deg/s)
+  |  \                  <-- Slope -1/2: Angle Random Walk (white noise)
+  |   \________         <-- Flat region: Bias Instability (marked with circle)
+  |            \        <-- Slope +1/2: Rate Random Walk
+  +----------------------- tau (seconds)
+```
+
+Reference slope lines for `-1/2` (ARW) and `+1/2` (RRW) are drawn as dashed overlays. The **green circle** marks the minimum OADEV point (Bias Instability). Tau axis uses log scale with labeled decades.
+
+### Bias Drift
+
+A **5-second rolling mean** of gyro-Z is plotted over the full recording duration. This reveals:
+- **Flat line near zero** → stable, well-calibrated sensor
+- **Sloping line** → systematic drift (temperature, interference, or firmware issue)
+- **Jumps or steps** → quantization or filter artefacts in the sensor firmware
+
+### Noise Parameters
+
+Three scalar values are extracted from the OADEV curve and displayed with industry-standard units:
+
+| Parameter | Abbrev. | Unit | How extracted |
+|-----------|---------|------|---------------|
+| Angle Random Walk | **ARW** | deg/sqrt(hr) | ADEV at tau=1s, converted: x60 |
+| Bias Instability | **BI** | deg/hr | Minimum ADEV value, converted: x3600 |
+| Rate Random Walk | **RRW** | deg/hr^(3/2) | ADEV at largest tau, converted: x3600 |
+
+**Interpretation guide:**
+
+| Sensor class | ARW (deg/sqrt(hr)) | BI (deg/hr) |
+|-------------|-------------------|-------------|
+| Navigation grade | < 0.001 | < 0.01 |
+| Tactical grade | 0.001–0.01 | 0.01–1 |
+| **BNO085 / consumer MEMS** | **0.01–0.1** | **1–10** |
+| MEMS budget | 0.1–1 | 10–100 |
+
+---
+
 ## Python Server
 
 ### Data Sources
 
-The server runs two background threads simultaneously:
+The server runs two background threads simultaneously, plus an analysis ring buffer:
 
 **UDP Thread** — `udp_listener(port)`
 - Binds to `0.0.0.0:8765` (all interfaces)
 - Receives datagrams from the Android app
 - Parses CSV or JSON format
-- Updates `phone_data` dict under a lock
+- Updates `phone_data` dict under a threading lock
+- Appends raw samples to `phone_buffer` when recording is active
 - Marks `connected=False` if no packet received for >3 seconds
 - Tracks rolling sample rate (packets/second)
 
 **Serial Thread** — `serial_listener(port, baud)`
 - Opens the specified COM port (works identically for UART and USB CDC/VCP)
-- Reads lines, attempts to parse each line
+- Reads lines with readline(), attempts to parse each
 - Auto-reconnects on disconnect (3-second retry loop)
-- Updates `imu_data` dict under a lock
+- Updates `imu_data` dict under a threading lock
+- Appends raw samples to `imu_buffer` when recording is active
 - Tracks rolling sample rate
 
 ### Serial Parser
@@ -365,7 +477,7 @@ Or with full sensor data:
 
 ### WebSocket Broadcaster
 
-The broadcaster runs as a SocketIO background task (not a thread — eventlet greenlet):
+The broadcaster runs as a SocketIO background task (eventlet greenlet — not a thread):
 
 ```
 every 1/target_rate_hz seconds:
@@ -389,13 +501,37 @@ The payload structure:
     "rate_hz": 98.4,
     "rel_ts": 2.347
   },
-  "imu": { ... same structure ... },
+  "imu": { "...same structure..." },
   "zeroed": true,
   "sync_offset_ms": 6.2,
   "target_rate_hz": 50,
   "ts": 1713483602.456
 }
 ```
+
+### Analysis Ring Buffer
+
+Two `deque(maxlen=12000)` ring buffers store raw samples when recording is active (12,000 samples = ~4 min at 50 Hz, ~2 min at 100 Hz):
+
+```python
+phone_buffer.append({
+    "ts":    pc_ts - record_start,   # seconds since record start
+    "gx": g[0], "gy": g[1], "gz": g[2],   # rad/s (raw, unconverted)
+    "ax": a[0], "ay": a[1], "az": a[2],   # m/s^2
+    "yaw": e["yaw"], "pitch": e["pitch"], "roll": e["roll"],  # degrees
+})
+```
+
+**SocketIO events for analysis:**
+
+| Event | Direction | Description |
+|-------|-----------|-------------|
+| `start_recording` | browser to server | Clears buffers, starts appending samples |
+| `stop_recording` | browser to server | Stops appending, returns sample counts |
+| `get_analysis_data` | browser to server | Requests raw buffer for a source |
+| `analysis_data` | server to browser | Raw sample array (all computation done client-side) |
+| `clear_buffers` | browser to server | Wipes buffers without stopping a recording |
+| `recording_ack` | server to browser | Confirms state change + sample counts |
 
 ---
 
@@ -416,7 +552,7 @@ The payload structure:
    - Settings → Developer Options → USB Debugging → ON
 4. Connect phone via USB
 5. Select your device in Android Studio toolbar
-6. Click **Run ▶**
+6. Click **Run**
 
 ### PC Server Setup
 
@@ -442,28 +578,28 @@ python server.py --help
 
 **All CLI arguments:**
 ```
---serial   COM port for hobby IMU  (e.g. COM3, /dev/ttyUSB0)
---baud     Serial baud rate        (default: 115200)
---udp-port UDP port for phone data (default: 8765)
---web-port Web server port         (default: 5000)
---rate     Output rate to browser  (default: 50 Hz)
---no-serial  Disable serial input
---no-udp     Disable UDP input
+--serial    COM port for hobby IMU  (e.g. COM3, /dev/ttyUSB0)
+--baud      Serial baud rate        (default: 115200)
+--udp-port  UDP port for phone      (default: 8765)
+--web-port  Web server port         (default: 5000)
+--rate      Output rate to browser  (default: 50 Hz, range 1-200)
+--no-serial Disable serial input
+--no-udp    Disable UDP input
 ```
 
 Open `http://localhost:5000` in your browser.
+Open `http://localhost:5000/analysis` for the Research Dashboard.
 
 ### Connecting Phone to Dashboard
 
 **Both phone and PC must be on the same network.**
 
-> **Important:** `192.168.137.1` is your PC's own Mobile Hotspot IP — don't use this.
-> Use the IP your PC gets on the Wi-Fi network it's *connected to*.
+> **Important:** `192.168.137.1` is your PC's own Mobile Hotspot IP — do not use this unless your phone is connected to your PC's hotspot.
 
 Find PC's IP:
 ```powershell
 ipconfig
-# Look for "Wi-Fi" adapter → IPv4 Address
+# Look for "Wi-Fi" adapter -> IPv4 Address
 # Example: 10.217.85.204
 ```
 
@@ -501,8 +637,8 @@ Switch to **IMU only** or **Compare** mode in the browser.
 
 | Scenario | PC IP to use in app |
 |----------|-------------------|
-| Both phone and PC on home router Wi-Fi | `192.168.1.x` (from `ipconfig` → Wi-Fi adapter) |
-| PC connected to phone's mobile hotspot | `10.x.x.x` or `192.168.43.x` (from `ipconfig` → Wi-Fi adapter) |
+| Both phone and PC on home router Wi-Fi | `192.168.1.x` (from `ipconfig`, Wi-Fi adapter) |
+| PC connected to phone's mobile hotspot | `10.x.x.x` or `192.168.43.x` (from `ipconfig`, Wi-Fi adapter) |
 | PC's own Mobile Hotspot, phone connected to it | `192.168.137.1` (PC's hotspot gateway) |
 
 **Never mix scenarios** — if the PC is connected to the phone's hotspot, it will have a different IP than its own hotspot address.
@@ -514,7 +650,7 @@ Switch to **IMU only** or **Compare** mode in the browser.
 Your firmware just needs to print one line per sample over USB CDC (or UART). Any of the following work without any server configuration:
 
 ```c
-// Key-value (recommended — clear and debuggable)
+// Key-value (recommended -- clear and debuggable)
 printf("YAW:%.2f PITCH:%.2f ROLL:%.2f\r\n", yaw, pitch, roll);
 
 // CSV (minimum bytes)
@@ -523,7 +659,7 @@ printf("%.2f,%.2f,%.2f\r\n", yaw, pitch, roll);
 // JSON
 printf("{\"yaw\":%.2f,\"pitch\":%.2f,\"roll\":%.2f}\r\n", yaw, pitch, roll);
 
-// Extended with raw sensors
+// Extended with raw sensors (enables accel/gyro charts in dashboard)
 printf("YAW:%.2f PITCH:%.2f ROLL:%.2f AX:%.4f AY:%.4f AZ:%.4f GX:%.4f GY:%.4f GZ:%.4f\r\n",
        yaw, pitch, roll, ax, ay, az, gx, gy, gz);
 ```
@@ -532,7 +668,9 @@ printf("YAW:%.2f PITCH:%.2f ROLL:%.2f AX:%.4f AY:%.4f AZ:%.4f GX:%.4f GY:%.4f GZ
 
 **Expected units:**
 - Yaw, Pitch, Roll: **degrees** (not radians)
-- Range: Yaw ±180°, Pitch ±90°, Roll ±180°
+- Range: Yaw ±180 deg, Pitch ±90 deg, Roll ±180 deg
+- Gyro (optional): rad/s
+- Accel (optional): m/s^2
 
 ---
 
@@ -540,46 +678,48 @@ printf("YAW:%.2f PITCH:%.2f ROLL:%.2f AX:%.4f AY:%.4f AZ:%.4f GX:%.4f GY:%.4f GZ
 
 ```
 IMU_APP/
-├── app/
-│   └── src/main/java/com/robomanipal/imusensor/
-│       ├── sensor/
-│       │   ├── SensorData.kt          # Data models: SensorReading, OrientationData
-│       │   └── SensorRepository.kt    # SensorManager wrapper, quaternion→euler
-│       ├── streaming/
-│       │   ├── StreamConfig.kt        # IP, port, rate, format configuration
-│       │   └── UDPStreamer.kt         # Coroutine-based UDP sender
-│       ├── export/
-│       │   ├── CsvExporter.kt         # CSV file writer
-│       │   └── JsonExporter.kt        # JSON file writer
-│       ├── viewmodel/
-│       │   ├── SensorViewModel.kt     # StateFlow for sensor data
-│       │   └── StreamViewModel.kt     # Streaming start/stop state
-│       └── ui/
-│           ├── theme/                 # Colors, typography, MaterialTheme
-│           ├── components/
-│           │   ├── GlassCard.kt       # Glassmorphism card composable
-│           │   ├── SensorChart.kt     # Canvas rolling line chart
-│           │   ├── YPRGauges.kt       # Arc gauge row (fixed value/fraction split)
-│           │   ├── OrientationCube.kt # 3D wireframe cube (Canvas)
-│           │   └── AnimatedNavBar.kt  # Bottom navigation bar
-│           ├── screens/
-│           │   ├── DashboardScreen.kt
-│           │   ├── OrientationScreen.kt
-│           │   ├── StreamScreen.kt
-│           │   ├── SettingsScreen.kt
-│           │   └── SensorDetailScreen.kt
-│           └── navigation/
-│               └── AppNavigation.kt  # HorizontalPager + NavHost routing
-│
-├── pc_receiver/
-│   ├── server.py          # Flask + SocketIO + UDP + Serial backend
-│   ├── requirements.txt   # Python dependencies
-│   └── web/
-│       ├── index.html     # Dashboard HTML (three mode panels)
-│       ├── style.css      # Dark glassmorphism CSS
-│       └── app.js         # SocketIO client, Canvas charts, Three.js cubes
-│
-└── README.md
++-- app/
+|   +-- src/main/java/com/robomanipal/imusensor/
+|       +-- sensor/
+|       |   +-- SensorData.kt          # Data models: SensorReading, OrientationData
+|       |   +-- SensorRepository.kt    # SensorManager wrapper, quaternion->euler
+|       +-- streaming/
+|       |   +-- StreamConfig.kt        # IP, port, rate, format configuration
+|       |   +-- UDPStreamer.kt         # Coroutine-based UDP sender
+|       +-- export/
+|       |   +-- CsvExporter.kt         # CSV file writer
+|       |   +-- JsonExporter.kt        # JSON file writer
+|       +-- viewmodel/
+|       |   +-- SensorViewModel.kt     # StateFlow for sensor data
+|       |   +-- StreamViewModel.kt     # Streaming start/stop state
+|       +-- ui/
+|           +-- theme/                 # Colors, typography, MaterialTheme
+|           +-- components/
+|           |   +-- GlassCard.kt       # Glassmorphism card composable
+|           |   +-- SensorChart.kt     # Canvas rolling line chart
+|           |   +-- YPRGauges.kt       # Arc gauge row (fixed value/fraction split)
+|           |   +-- OrientationCube.kt # 3D wireframe cube (Canvas)
+|           |   +-- AnimatedNavBar.kt  # Bottom navigation bar
+|           +-- screens/
+|           |   +-- DashboardScreen.kt
+|           |   +-- OrientationScreen.kt
+|           |   +-- StreamScreen.kt
+|           |   +-- SettingsScreen.kt
+|           |   +-- SensorDetailScreen.kt
+|           +-- navigation/
+|               +-- AppNavigation.kt  # HorizontalPager + NavHost routing
+|
++-- pc_receiver/
+|   +-- server.py          # Flask + SocketIO + UDP + Serial + analysis buffer
+|   +-- requirements.txt   # Python dependencies
+|   +-- web/
+|       +-- index.html     # Live Dashboard (three mode panels)
+|       +-- style.css      # Dark glassmorphism CSS (shared by both pages)
+|       +-- app.js         # SocketIO client, RollingChart, ArcGauge, Cube3D
+|       +-- analysis.html  # Research Dashboard HTML
+|       +-- analysis.js    # OADEV algorithm, RMS/bias math, log-log chart renderer
+|
++-- README.md
 ```
 
 ---
@@ -590,13 +730,19 @@ IMU_APP/
 UDP is connectionless and has no retransmit overhead. A dropped IMU packet is meaningless — by the time a TCP retransmit arrives, the data is stale. UDP gives lowest possible latency with no head-of-line blocking.
 
 ### Why Canvas for charts, not a charting library?
-Full control over rendering. Libraries add DOM overhead and opaque animation systems. The custom `RollingChart` draws at exactly the right time with exactly the right style. Glow effects, grid, zero-line, and axis colors are all precisely controllable.
+Full control over rendering. Libraries add DOM overhead and opaque animation systems. The custom `RollingChart` draws at exactly the right time with exactly the right style. Grid, zero-line, and axis colors are all precisely controllable without fighting a library's defaults.
 
 ### Why separate `displayValue` and `arcFraction` in the YPR gauge?
-The arc requires a 0–1 fraction for its sweep angle. Pitch spans -90 to +90, requiring a `(pitch + 90) / 180` shift to get a fraction. If you display that shifted value, you show `90.1°` when pitch is `0.01°`. The separation ensures the text always shows the raw degree value while the arc uses the correct fraction for drawing.
+The arc requires a 0–1 fraction for its sweep angle. Pitch spans -90 to +90, requiring a `(pitch + 90) / 180` shift to get a fraction. If you display that shifted value, you show `90.1 deg` when pitch is `0.01 deg`. The separation ensures the text always shows the raw degree value while the arc uses the correct fraction for drawing.
 
 ### Why `time.perf_counter()` for sync timestamps?
 `time.time()` is wall-clock and can jump on NTP corrections. `perf_counter()` is a monotonic high-resolution clock — guaranteed to never go backwards, with microsecond precision. Since we only care about the *difference* between phone and IMU arrival times, a monotonic clock is ideal.
 
 ### Why angle-wrapped diff for zero reference?
-Simple subtraction fails at the ±180° boundary. A device at 178° that rotates 5° to 183° wraps to -177°. Angle wrapping ensures the delta correctly shows +5° in all boundary cases.
+Simple subtraction fails at the ±180 degree boundary. A device at 178° that rotates 5° to 183° wraps to -177°. Angle wrapping ensures the delta correctly shows +5° in all boundary cases.
+
+### Why overlapping Allan deviation (OADEV) instead of regular AVAR?
+The classic non-overlapping Allan variance uses each cluster only once, wasting data. The overlapping variant reuses adjacent clusters — for N samples and cluster size m, it computes N-2m differences instead of floor(N/2m). This gives a statistically more reliable estimate with roughly 3x lower uncertainty, especially important for the short recordings typical in hobbyist use (60–120 seconds versus hours for lab-grade sensors).
+
+### Why compute analysis client-side in the browser?
+Allan variance is CPU-intensive (O(N × number_of_tau_decades) operations). Running it on the server would block the eventlet cooperative scheduler, freezing all WebSocket broadcasts during computation. Offloading to the browser lets JavaScript run on a separate thread via the V8 engine without affecting live data delivery. The server only stores and transfers the raw sample buffer.

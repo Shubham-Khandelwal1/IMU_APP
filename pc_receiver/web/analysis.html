@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>IMU Research Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="style.css"/>
+  <style>
+    /* ── Research-specific overrides ─────────────────────── */
+    .research-header {
+      display: flex; align-items: center; gap: 16px;
+      padding: 14px 24px;
+      background: rgba(10,10,18,0.9);
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      backdrop-filter: blur(20px);
+      position: sticky; top: 0; z-index: 100;
+    }
+    .back-btn {
+      display: flex; align-items: center; gap: 6px;
+      padding: 6px 14px; border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.04);
+      color: rgba(255,255,255,0.6);
+      font-size: 13px; font-weight: 500; cursor: pointer;
+      text-decoration: none; transition: all 0.2s;
+    }
+    .back-btn:hover { background: rgba(255,255,255,0.09); color: #fff; }
+    .page-title { font-size: 18px; font-weight: 700; flex: 1; }
+    .page-subtitle { font-size: 12px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+
+    /* ── Record panel ──────────────────────────────────────── */
+    .record-panel {
+      display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+      padding: 16px 24px;
+      background: rgba(255,255,255,0.02);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .record-btn {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 22px; border-radius: 12px; border: none; cursor: pointer;
+      font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600;
+      transition: all 0.2s;
+    }
+    .record-btn.start { background: rgba(255,82,82,0.15); border: 1px solid rgba(255,82,82,0.4); color: #FF5252; }
+    .record-btn.start:hover { background: rgba(255,82,82,0.25); }
+    .record-btn.stop  { background: rgba(105,240,174,0.15); border: 1px solid rgba(105,240,174,0.4); color: #69F0AE; }
+    .record-btn.stop:hover  { background: rgba(105,240,174,0.25); }
+    .record-btn.analyze { background: rgba(0,229,255,0.12); border: 1px solid rgba(0,229,255,0.3); color: #00E5FF; }
+    .record-btn.analyze:hover { background: rgba(0,229,255,0.22); }
+    .record-dot { width: 9px; height: 9px; border-radius: 50%; background: currentColor; }
+    .rec-dot-pulse { animation: pulse 1s ease-in-out infinite; }
+
+    .rec-info { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: rgba(255,255,255,0.5); }
+    .rec-info span { color: #fff; font-weight: 600; }
+    .source-selector { display: flex; gap: 6px; }
+    .src-btn { padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 600;
+               font-family: 'Inter', sans-serif; cursor: pointer; transition: all 0.2s;
+               border: 1px solid rgba(255,255,255,0.1); background: transparent; color: rgba(255,255,255,0.4); }
+    .src-btn.active-phone { border-color: rgba(0,229,255,0.4); background: rgba(0,229,255,0.1); color: #00E5FF; }
+    .src-btn.active-imu   { border-color: rgba(255,109,0,0.4);  background: rgba(255,109,0,0.1);  color: #FF6D00; }
+
+    /* ── Analysis grid ────────────────────────────────────── */
+    .analysis-main { padding: 20px 24px 60px; max-width: 1400px; margin: 0 auto; }
+    .analysis-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    .analysis-col { display: flex; flex-direction: column; gap: 16px; }
+    .analysis-col-header {
+      font-size: 15px; font-weight: 700; margin-bottom: 2px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .analysis-col-header .col-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+    /* ── Stat cards ─────────────────────────────────────────── */
+    .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .stat-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 12px; padding: 12px 14px;
+    }
+    .stat-name { font-size: 10px; font-weight: 600; letter-spacing: 1px;
+                 color: rgba(255,255,255,0.35); margin-bottom: 6px; }
+    .stat-val  { font-family: 'JetBrains Mono', monospace; font-size: 18px;
+                 font-weight: 700; color: #fff; }
+    .stat-unit { font-size: 10px; color: rgba(255,255,255,0.3); margin-left: 3px; }
+
+    /* ── XYZ breakdown table ──────────────────────────────── */
+    .xyz-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .xyz-table th { color: rgba(255,255,255,0.3); font-weight: 600;
+                    padding: 6px 10px; text-align: right; font-family: 'Inter', sans-serif; }
+    .xyz-table th:first-child { text-align: left; }
+    .xyz-table td { font-family: 'JetBrains Mono', monospace; padding: 5px 10px;
+                    text-align: right; border-top: 1px solid rgba(255,255,255,0.04); }
+    .xyz-table td:first-child { text-align: left; color: rgba(255,255,255,0.5); font-weight: 600; }
+    .col-x { color: #FF5252; } .col-y { color: #69F0AE; } .col-z { color: #448AFF; }
+
+    /* ── Log-log Allan chart ─────────────────────────────── */
+    .allan-canvas { width: 100%; height: 280px; display: block; cursor: crosshair; }
+
+    /* ── Noise params ─────────────────────────────────────── */
+    .noise-params { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .noise-param { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
+                   border-radius: 10px; padding: 10px 12px; text-align: center; }
+    .noise-param-name { font-size: 10px; letter-spacing: 1px; font-weight: 700;
+                        color: rgba(255,255,255,0.4); margin-bottom: 4px; }
+    .noise-param-val  { font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 700; }
+    .noise-param-unit { font-size: 9px; color: rgba(255,255,255,0.25); }
+
+    /* ── Drift chart ──────────────────────────────────────── */
+    .drift-canvas { width: 100%; height: 180px; display: block; }
+
+    /* ── Empty state ──────────────────────────────────────── */
+    .empty-state {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      min-height: 200px; color: rgba(255,255,255,0.2); gap: 10px;
+      border: 1px dashed rgba(255,255,255,0.08); border-radius: 16px;
+    }
+    .empty-state svg { opacity: 0.3; }
+    .empty-state p { font-size: 13px; }
+
+    @media (max-width: 900px) { .analysis-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+
+  <!-- ── Header ─────────────────────────────────────────────── -->
+  <header class="research-header">
+    <a href="/" class="back-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+      Dashboard
+    </a>
+    <div>
+      <div class="page-title">📊 Research Dashboard</div>
+      <div class="page-subtitle">RMS Noise · Allan Variance · Bias Drift Analysis</div>
+    </div>
+    <div class="rec-info" id="recStatus">
+      Ready to record — keep IMU stationary during recording
+    </div>
+  </header>
+
+  <!-- ── Record control panel ──────────────────────────────── -->
+  <div class="record-panel">
+    <div class="source-selector">
+      <button class="src-btn active-phone" id="srcPhone" onclick="selectSource('phone')">📱 Phone</button>
+      <button class="src-btn" id="srcImu" onclick="selectSource('imu')">🔧 IMU</button>
+      <button class="src-btn" id="srcBoth" onclick="selectSource('both')">⚖️ Both</button>
+    </div>
+
+    <button class="record-btn start" id="recBtn" onclick="toggleRecord()">
+      <span class="record-dot" id="recDot"></span>
+      <span id="recBtnLabel">Start Recording</span>
+    </button>
+
+    <button class="record-btn analyze" id="analyzeBtn" onclick="runAnalysis()" disabled>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
+      Analyze
+    </button>
+
+    <div class="rec-info">
+      Duration: <span id="recDuration">0s</span> &nbsp;|&nbsp;
+      Phone: <span id="recNPhone">0</span> samples &nbsp;|&nbsp;
+      IMU: <span id="recNImu">0</span> samples
+    </div>
+  </div>
+
+  <!-- ── Main analysis content ──────────────────────────────── -->
+  <div class="analysis-main">
+
+    <!-- IMU tips -->
+    <div class="glass" style="padding:14px 20px;margin-bottom:20px;display:flex;gap:20px;flex-wrap:wrap;align-items:center;">
+      <div style="font-size:12px;color:rgba(255,255,255,0.4);line-height:1.8">
+        <strong style="color:rgba(255,255,255,0.7)">How to use:</strong>
+        Place both IMUs flat and stationary &nbsp;→&nbsp; Click <em>Start Recording</em> &nbsp;→&nbsp; Wait 60–120 seconds &nbsp;→&nbsp; Click <em>Stop</em> &nbsp;→&nbsp; Click <em>Analyze</em>
+      </div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:11px;display:flex;flex-direction:column;gap:4px;color:rgba(255,255,255,0.3)">
+        <span>Slope <strong style="color:#FF5252">−½</strong> = Angle Random Walk (white noise)</span>
+        <span>Flat region = <strong style="color:#69F0AE">Bias Instability</strong> (best ARW floor)</span>
+        <span>Slope <strong style="color:#448AFF">+½</strong> = Rate Random Walk (sensor drift)</span>
+      </div>
+    </div>
+
+    <div class="analysis-grid" id="analysisGrid">
+
+      <!-- ── PHONE column ─────────────────────────────────── -->
+      <div class="analysis-col" id="phoneCol">
+        <div class="analysis-col-header">
+          <span class="col-dot" style="background:#00E5FF"></span>
+          <span>Phone IMU</span>
+          <span class="rate-badge" id="phoneAnalRate" style="font-size:10px">—</span>
+        </div>
+
+        <!-- RMS / Std / Bias stats -->
+        <div class="glass" style="padding:16px" id="phoneStats">
+          <div class="chart-title" style="margin-bottom:12px">Gyroscope Noise — Stationary</div>
+          <div class="stat-grid">
+            <div class="stat-card">
+              <div class="stat-name">RMS NOISE</div>
+              <div class="stat-val" id="phoneGyrRms">—<span class="stat-unit">°/s</span></div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-name">STD DEV</div>
+              <div class="stat-val" id="phoneGyrStd">—<span class="stat-unit">°/s</span></div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-name">BIAS</div>
+              <div class="stat-val" id="phoneGyrBias">—<span class="stat-unit">°/s</span></div>
+            </div>
+          </div>
+          <div style="height:10px"></div>
+          <table class="xyz-table">
+            <thead><tr><th>Axis</th><th>RMS (°/s)</th><th>Std (°/s)</th><th>Bias (°/s)</th></tr></thead>
+            <tbody id="phoneGyrXyz"></tbody>
+          </table>
+        </div>
+
+        <!-- Allan variance -->
+        <div class="glass" style="padding:16px">
+          <div class="chart-title" style="margin-bottom:8px">Allan Deviation — Gyroscope</div>
+          <canvas id="allanPhone" class="allan-canvas"></canvas>
+          <div class="noise-params" style="margin-top:12px">
+            <div class="noise-param">
+              <div class="noise-param-name">ARW</div>
+              <div class="noise-param-val" id="phoneArw" style="color:#FF5252">—</div>
+              <div class="noise-param-unit">°/√hr</div>
+            </div>
+            <div class="noise-param">
+              <div class="noise-param-name">BIAS INSTAB.</div>
+              <div class="noise-param-val" id="phoneBi" style="color:#69F0AE">—</div>
+              <div class="noise-param-unit">°/hr</div>
+            </div>
+            <div class="noise-param">
+              <div class="noise-param-name">RRW</div>
+              <div class="noise-param-val" id="phoneRrw" style="color:#448AFF">—</div>
+              <div class="noise-param-unit">°/hr^(3/2)</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bias drift chart -->
+        <div class="glass" style="padding:16px">
+          <div class="chart-title" style="margin-bottom:8px">Gyro Z-axis Bias Drift Over Time</div>
+          <canvas id="driftPhone" class="drift-canvas"></canvas>
+        </div>
+      </div>
+
+      <!-- ── IMU column ──────────────────────────────────── -->
+      <div class="analysis-col" id="imuCol">
+        <div class="analysis-col-header">
+          <span class="col-dot" style="background:#FF6D00"></span>
+          <span>Hobby IMU</span>
+          <span class="rate-badge imu-badge" id="imuAnalRate" style="font-size:10px">—</span>
+        </div>
+
+        <div class="glass" style="padding:16px">
+          <div class="chart-title" style="margin-bottom:12px">Gyroscope Noise — Stationary</div>
+          <div class="stat-grid">
+            <div class="stat-card">
+              <div class="stat-name">RMS NOISE</div>
+              <div class="stat-val" id="imuGyrRms">—<span class="stat-unit">°/s</span></div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-name">STD DEV</div>
+              <div class="stat-val" id="imuGyrStd">—<span class="stat-unit">°/s</span></div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-name">BIAS</div>
+              <div class="stat-val" id="imuGyrBias">—<span class="stat-unit">°/s</span></div>
+            </div>
+          </div>
+          <div style="height:10px"></div>
+          <table class="xyz-table">
+            <thead><tr><th>Axis</th><th>RMS (°/s)</th><th>Std (°/s)</th><th>Bias (°/s)</th></tr></thead>
+            <tbody id="imuGyrXyz"></tbody>
+          </table>
+        </div>
+
+        <div class="glass" style="padding:16px">
+          <div class="chart-title" style="margin-bottom:8px">Allan Deviation — Gyroscope</div>
+          <canvas id="allanImu" class="allan-canvas"></canvas>
+          <div class="noise-params" style="margin-top:12px">
+            <div class="noise-param">
+              <div class="noise-param-name">ARW</div>
+              <div class="noise-param-val" id="imuArw" style="color:#FF5252">—</div>
+              <div class="noise-param-unit">°/√hr</div>
+            </div>
+            <div class="noise-param">
+              <div class="noise-param-name">BIAS INSTAB.</div>
+              <div class="noise-param-val" id="imuBi" style="color:#69F0AE">—</div>
+              <div class="noise-param-unit">°/hr</div>
+            </div>
+            <div class="noise-param">
+              <div class="noise-param-name">RRW</div>
+              <div class="noise-param-val" id="imuRrw" style="color:#448AFF">—</div>
+              <div class="noise-param-unit">°/hr^(3/2)</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="glass" style="padding:16px">
+          <div class="chart-title" style="margin-bottom:8px">Gyro Z-axis Bias Drift Over Time</div>
+          <canvas id="driftImu" class="drift-canvas"></canvas>
+        </div>
+      </div>
+
+    </div><!-- /analysis-grid -->
+  </div>
+
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script src="analysis.js"></script>
+</body>
+</html>

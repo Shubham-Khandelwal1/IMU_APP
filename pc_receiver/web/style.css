@@ -70,12 +70,15 @@ html, body {
   align-items: center;
   gap: 10px;
 }
-.logo-text {
-  font-size: 16px;
-  font-weight: 700;
-  letter-spacing: -0.3px;
-  color: var(--text);
+.logo-text { font-size: 17px; font-weight: 700; }
+
+.research-link {
+  display: flex; align-items: center; gap: 6px; margin-left: 16px;
+  padding: 5px 12px; border-radius: 8px; text-decoration: none;
+  border: 1px solid rgba(123,47,255,0.35); background: rgba(123,47,255,0.08);
+  color: #B78AFF; font-size: 12px; font-weight: 600; transition: all 0.2s;
 }
+.research-link:hover { background: rgba(123,47,255,0.18); }
 
 /* ── Mode selector ────────────────────────────────────────── */
 .mode-selector {

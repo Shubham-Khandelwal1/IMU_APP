@@ -23,6 +23,7 @@ import json
 import re
 import socket
 import threading
+from collections import deque
 from typing import Optional
 import time
 from datetime import datetime
@@ -63,8 +64,15 @@ imu_data = {
     "rate_hz": 0,
 }
 
-_lock        = threading.Lock()
+_lock          = threading.Lock()
 target_rate_hz = 50    # output rate to browser — both sources decimated to this
+
+# ── Analysis ring buffers ───────────────────────────────────────────
+MAX_BUFFER     = 12000   # 4 min @ 50 Hz
+phone_buffer   = deque(maxlen=MAX_BUFFER)   # list of {ts, gx,gy,gz, ax,ay,az, yaw,pitch,roll}
+imu_buffer     = deque(maxlen=MAX_BUFFER)
+recording      = False
+record_start   = 0.0
 
 # ── Zero reference offsets ────────────────────────────────────────────────
 # When zeroed, all euler output = actual - offset (angle-wrapped to -180..+180)
@@ -219,10 +227,11 @@ def udp_listener(port: int):
                     rate = phone_data["rate_hz"]
 
                 with _lock:
+                    pc_ts = time.perf_counter()
                     phone_data.update({
                         "connected": True,
                         "last_seen": time.time(),
-                        "pc_ts":     time.perf_counter(),
+                        "pc_ts":     pc_ts,
                         "accel":  parsed.get("accel", [0, 0, 0]),
                         "gyro":   parsed.get("gyro",  [0, 0, 0]),
                         "mag":    parsed.get("mag",   [0, 0, 0]),
@@ -230,6 +239,16 @@ def udp_listener(port: int):
                         "euler":  parsed.get("euler", {"yaw": 0, "pitch": 0, "roll": 0}),
                         "rate_hz": round(rate, 1),
                     })
+                    if recording:
+                        e = phone_data["euler"]
+                        g = phone_data["gyro"]
+                        a = phone_data["accel"]
+                        phone_buffer.append({
+                            "ts": pc_ts - record_start,
+                            "gx": g[0], "gy": g[1], "gz": g[2],
+                            "ax": a[0], "ay": a[1], "az": a[2],
+                            "yaw": e["yaw"], "pitch": e["pitch"], "roll": e["roll"],
+                        })
         except socket.timeout:
             # Mark disconnected if no packet for >3 s
             with _lock:
@@ -266,15 +285,26 @@ def serial_listener(port: str, baud: int):
                         rate = imu_data["rate_hz"]
 
                     with _lock:
+                        pc_ts = time.perf_counter()
                         imu_data.update({
                             "connected": True,
                             "last_seen": time.time(),
-                            "pc_ts":     time.perf_counter(),
+                            "pc_ts":     pc_ts,
                             "accel":  parsed.get("accel", [0, 0, 0]),
                             "gyro":   parsed.get("gyro",  [0, 0, 0]),
                             "euler":  parsed["euler"],
                             "rate_hz": round(rate, 1),
                         })
+                        if recording:
+                            e = imu_data["euler"]
+                            g = imu_data["gyro"]
+                            a = imu_data["accel"]
+                            imu_buffer.append({
+                                "ts": pc_ts - record_start,
+                                "gx": g[0], "gy": g[1], "gz": g[2],
+                                "ax": a[0], "ay": a[1], "az": a[2],
+                                "yaw": e["yaw"], "pitch": e["pitch"], "roll": e["roll"],
+                            })
 
         except Exception as e:
             print(f"[Serial] Error: {e} — retrying in 3 s")
@@ -366,6 +396,57 @@ def on_set_rate(hz):
     print(f"[Rate] Output rate set to {hz} Hz")
     socketio.emit("rate_ack", {"target_rate_hz": hz})
 
+# ── Analysis recording events ──────────────────────────────────────────────
+
+@socketio.on("start_recording")
+def on_start_recording():
+    global recording, record_start
+    with _lock:
+        phone_buffer.clear()
+        imu_buffer.clear()
+        record_start = time.perf_counter()
+        recording    = True
+    print("[Analysis] Recording started")
+    socketio.emit("recording_ack", {"recording": True, "ts": record_start})
+
+@socketio.on("stop_recording")
+def on_stop_recording():
+    global recording
+    with _lock:
+        recording = False
+        n_phone = len(phone_buffer)
+        n_imu   = len(imu_buffer)
+    print(f"[Analysis] Recording stopped. Phone={n_phone} samples, IMU={n_imu} samples")
+    socketio.emit("recording_ack", {"recording": False, "n_phone": n_phone, "n_imu": n_imu})
+
+@socketio.on("get_analysis_data")
+def on_get_analysis_data(source):
+    """Send buffered raw samples to the browser for client-side analysis."""
+    with _lock:
+        if source == "phone":
+            buf = list(phone_buffer)
+            hz  = phone_data["rate_hz"]
+        else:
+            buf = list(imu_buffer)
+            hz  = imu_data["rate_hz"]
+    print(f"[Analysis] Sending {len(buf)} samples for {source}")
+    socketio.emit("analysis_data", {
+        "source": source,
+        "samples": buf,
+        "rate_hz": hz,
+        "n": len(buf),
+    })
+
+@socketio.on("clear_buffers")
+def on_clear_buffers():
+    with _lock:
+        phone_buffer.clear()
+        imu_buffer.clear()
+    socketio.emit("recording_ack", {"recording": False, "n_phone": 0, "n_imu": 0})
+
+@app.route("/analysis")
+def analysis_page():
+    return send_from_directory("web", "analysis.html")
 
 # ── Entry point ────────────────────────────────────────────────────────────
 
