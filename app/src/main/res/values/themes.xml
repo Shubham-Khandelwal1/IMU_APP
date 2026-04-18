@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Base theme — Compose handles the real theming.
+         This just sets the window background so the launch looks seamless. -->
+    <style name="Theme.IMUSensor" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">#FF0A0A12</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+    </style>
+</resources>
