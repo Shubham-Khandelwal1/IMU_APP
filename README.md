@@ -107,9 +107,9 @@ This project has three components that work together:
 |-------|-----------|---------|
 | Language | Kotlin | 2.0.21 |
 | UI Framework | Jetpack Compose | BOM 2024.12.01 |
-| Design System | Material 3 | via Compose BOM |
-| Architecture | MVVM + StateFlow | — |
-| Navigation | Navigation Compose + HorizontalPager | 2.8.5 |
+| Design System | Custom Premium Glassmorphism (No-Glow) | — |
+| Architecture | MVVM + StateFlow + Foreground Services | — |
+| Navigation | Navigation Compose + Custom Liquid-Glass NavBar | 2.8.5 |
 | Lifecycle | Lifecycle Runtime + ViewModel Compose | 2.8.7 |
 | Concurrency | Kotlin Coroutines + Flow | 1.9.0 |
 | Networking | Java `DatagramSocket` (UDP) | built-in |
@@ -120,35 +120,28 @@ This project has three components that work together:
 
 ### Screens
 
-The app uses a `HorizontalPager` for tab navigation — you can swipe between screens or tap the bottom nav. Navigation to sensor detail screens uses a standard NavHost push transition above the pager.
+### Screens
+
+Navigation is handled via a polished, Apple/Samsung One UI-inspired bottom navigation bar featuring a liquid-glass sliding pill indicator.
 
 #### 1. Dashboard (Home)
-- **YPR Banner**: Live Yaw/Pitch/Roll in degrees across the top, animating with spring physics
-- **Sensor Cards**: Four cards — Accelerometer, Gyroscope, Magnetometer, Orientation — each with a mini rolling line chart (X/Y/Z axes in red/green/blue)
-- **Statistics**: Each card shows min/max/mean/magnitude computed over the current data window
-- **Tap to Drill Down**: Tapping any card navigates to a full-screen sensor detail view with larger charts and a scrollable history
+- **YPR Banner**: Live Yaw/Pitch/Roll in degrees across the top, animating with spring physics.
+- **Premium Glass Cards**: Four cards — Accelerometer, Gyroscope, Magnetometer, Orientation — styled with a deep frosted-glass aesthetic (no excessive glow).
+- **Statistics**: Each card shows min/max/mean/magnitude computed over the current data window.
+- **Tap to Drill Down**: Tapping any card navigates to a full-screen sensor detail view with larger charts and a scrollable history.
 
 #### 2. 3D View (Orientation)
 - **3D Wireframe Cube**: A wireframe box rendered on Canvas with perspective projection, rotating in real time using Euler angles derived from the rotation vector sensor. XYZ axis lines are drawn in red/green/blue.
-- **YPR Arc Gauges**: Three semi-circular arc gauges (270 degree sweep) for Yaw, Pitch, Roll with:
-  - Correct display values (raw degrees, not shifted) using `displayValue` / `arcFraction` separation
-  - Tick marks at major/minor intervals
-  - Animated endpoint dot
-  - Spring-animated fill fraction
-  - Range labels (±180°, ±90°)
-- **Euler Angles Readout**: Large numeric values with +/- prefix and colored vertical badge strips
-- **Quaternion Display**: All four quaternion components (w, x, y, z) in monospace font
-- **Rotation Matrix**: Full 3x3 rotation matrix rendered with AnimatedVisibility entrance
+- **Euler Angles & Matrices**: Large numeric readouts for YPR alongside beautifully formatted monospaced quaternion vectors and a full 3x3 rotation matrix.
 
 #### 3. Stream
 - Target IP address and port configuration
 - Sample rate selector (up to 200 Hz)
 - Format toggle: CSV or JSON
-- Animated START/STOP button with live packet counter
-- Connection status
+- **Persistent Background Streaming**: Fully supports API 34+ foreground connections keeping the UDP stream alive continuously, even when the device screen is powered off.
 
 #### 4. Settings
-- Sensor rate control
+- App permissions and service bindings
 - CSV and JSON export to Documents directory
 
 ### Sensor Pipeline
@@ -229,21 +222,21 @@ Tap **Export CSV** or **Export JSON** in Settings. Files are saved to:
 | Backend server | Python 3 + Flask |
 | WebSocket | Flask-SocketIO + eventlet |
 | Serial/USB CDC | pyserial |
-| Frontend | Vanilla HTML + CSS + JavaScript |
+| Frontend | Vanilla HTML + Deep OLED CSS + JavaScript |
 | 3D rendering | Three.js (CDN) |
 | Live charts | Custom Canvas API `RollingChart` class |
-| Gauges | Custom Canvas API `ArcGauge` class |
+| Gauges | Liquid-fill dynamic HTML CSS transform gauges |
 | Analysis charts | Custom Canvas log-log OADEV renderer |
 | WebSocket client | Socket.IO JS client (CDN) |
 | Fonts | Google Fonts — Inter + JetBrains Mono |
 
 ### Modes
 
-Switch between modes using the three buttons in the header. Each mode shows different panels:
+Switch between modes using the floating Command Island at the top of the interface. Each mode automatically adjusts the glassmorphism grid layouts:
 
 #### Phone Only
 Shows everything the Android app is sending:
-- YPR arc gauges (same style as app, correct fractions)
+- Liquid tracking "water bottle" effect dynamic cards for Yaw, Pitch, and Roll
 - Rolling line charts for Accelerometer, Gyroscope, Magnetometer (200-sample window)
 - 3D wireframe cube rotating with phone orientation (Three.js WebGL)
 - Live sample rate badge

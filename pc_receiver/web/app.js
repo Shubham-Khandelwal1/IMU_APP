@@ -134,95 +134,24 @@ class RollingChart {
   }
 }
 
-// ── Gauge engine (canvas arc) ──────────────────────────────────
-class ArcGauge {
-  constructor(canvasId, color) {
-    this.canvas = document.getElementById(canvasId);
-    this.ctx    = this.canvas ? this.canvas.getContext('2d') : null;
-    this.color  = color;
-    this._frac  = 0;
-    this._target= 0;
-    this._frame = null;
-    this._draw();
+// ── Gauge engine (water bottle fill) ────────────────────────────
+class ArcGauge { // Kept name the same to avoid refactoring instances
+  constructor(elementId, color) {
+    this.el = document.getElementById(elementId);
+    this.color = color;
+    if (this.el) {
+      // Create a linear gradient based on the passed color
+      this.el.style.background = `linear-gradient(0deg, ${hexAlpha(color, 0.4)} 0%, ${hexAlpha(color, 0.05)} 100%)`;
+    }
+    this._frac = 0;
   }
 
   set(fraction) {
-    this._target = Math.max(0, Math.min(1, fraction));
-    if (!this._frame) this._animate();
-  }
-
-  _animate() {
-    const speed = 0.12;
-    this._frac += (this._target - this._frac) * speed;
-    this._draw();
-    if (Math.abs(this._target - this._frac) > 0.001) {
-      this._frame = requestAnimationFrame(() => this._animate());
-    } else {
-      this._frac  = this._target;
-      this._frame = null;
-      this._draw();
-    }
-  }
-
-  _draw() {
-    if (!this.ctx) return;
-    const canvas = this.canvas;
-    const dpr    = devicePixelRatio;
-    canvas.width  = 140 * dpr;
-    canvas.height = 140 * dpr;
-    const ctx  = this.ctx;
-    ctx.scale(dpr, dpr);
-
-    const cx = 70, cy = 70, r = 52;
-    const startAngle = (135 * Math.PI) / 180;
-    const totalAngle = (270 * Math.PI) / 180;
-    const sw = 8;
-
-    // Tick marks
-    const color   = this.color;
-    const tickCt  = 9;
-    const outerR  = r + sw / 2 + 2;
-    const innerR  = outerR - sw * 0.65;
-    for (let i = 0; i <= tickCt; i++) {
-      const frac  = i / tickCt;
-      const angle = startAngle + totalAngle * frac;
-      const isMaj = i % Math.floor(tickCt / 2) === 0;
-      ctx.strokeStyle = isMaj
-        ? hexAlpha(color, 0.35)
-        : 'rgba(255,255,255,0.09)';
-      ctx.lineWidth = isMaj ? 1.5 : 1;
-      ctx.beginPath();
-      ctx.moveTo(cx + innerR * Math.cos(angle), cy + innerR * Math.sin(angle));
-      ctx.lineTo(cx + outerR * Math.cos(angle), cy + outerR * Math.sin(angle));
-      ctx.stroke();
-    }
-
-    // Track arc
-    ctx.strokeStyle = 'rgba(255,255,255,0.07)';
-    ctx.lineWidth   = sw;
-    ctx.lineCap     = 'round';
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, startAngle, startAngle + totalAngle);
-    ctx.stroke();
-
-    // Value arc
-    const sweep = totalAngle * this._frac;
-    if (sweep > 0.01) {
-      ctx.strokeStyle = color;
-      ctx.lineWidth   = sw;
-      ctx.lineCap     = 'round';
-      ctx.beginPath();
-      ctx.arc(cx, cy, r, startAngle, startAngle + sweep);
-      ctx.stroke();
-
-      // Endpoint dot
-      const endA = startAngle + sweep;
-      const dx   = cx + r * Math.cos(endA);
-      const dy   = cy + r * Math.sin(endA);
-      ctx.fillStyle = '#ffffff';
-      ctx.beginPath();
-      ctx.arc(dx, dy, 4, 0, Math.PI * 2);
-      ctx.fill();
+    // Fraction ranges from [0, 1] based on degrees
+    const target = Math.max(0, Math.min(1, fraction));
+    // Smooth transition using CSS transition handle
+    if (this.el) {
+      this.el.style.transform = `scaleY(${target})`;
     }
   }
 }

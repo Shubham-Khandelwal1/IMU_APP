@@ -3,40 +3,40 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>IMU Comparison Dashboard</title>
+  <title>IMU Perception Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-  <!-- ── Header ──────────────────────────────────────────────── -->
+  <!-- ── Floating Header ──────────────────────────────────────── -->
   <header class="header">
     <div class="header-left">
       <div class="logo">
-        <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-          <circle cx="14" cy="14" r="13" stroke="#00D4FF" stroke-width="1.5"/>
-          <line x1="14" y1="4" x2="14" y2="24" stroke="#00D4FF" stroke-width="1.5"/>
-          <line x1="4" y1="14" x2="24" y2="14" stroke="#00D4FF" stroke-width="1.5"/>
+        <svg width="24" height="24" viewBox="0 0 28 28" fill="none">
+          <circle cx="14" cy="14" r="13" stroke="#00D4FF" stroke-width="2"/>
+          <line x1="14" y1="4" x2="14" y2="24" stroke="#00D4FF" stroke-width="2"/>
+          <line x1="4" y1="14" x2="24" y2="14" stroke="#00D4FF" stroke-width="2"/>
           <circle cx="14" cy="14" r="3" fill="#7B2FFF"/>
         </svg>
-        <span class="logo-text">IMU Dashboard</span>
+        <span class="logo-text">Perception Core</span>
       </div>
       <a href="/analysis" class="research-link">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm7 13H5v-.23c0-.62.28-1.2.76-1.58C7.47 15.82 9.64 15 12 15s4.53.82 6.24 2.19c.48.38.76.97.76 1.58V19z"/></svg>
-        Research
+        Analysis
       </a>
     </div>
 
-    <!-- Mode selector -->
+    <!-- Mode selector (Floating center) -->
     <div class="mode-selector" id="modeSelector">
-      <button class="mode-btn active" data-mode="phone"      onclick="setMode('phone')">
+      <button class="mode-btn active" data-mode="phone" onclick="setMode('phone')">
         <svg class="mode-icon" viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
-        Phone only
+        Phone
       </button>
       <button class="mode-btn" data-mode="imu" onclick="setMode('imu')">
         <svg class="mode-icon" viewBox="0 0 24 24"><path d="M9 4v1.38c-.83.33-1.5 1-1.83 1.83H4v2h2.17c.41 1.17 1.52 2 2.83 2s2.42-.83 2.83-2H20v-2h-8.17c-.33-.83-1-1.5-1.83-1.83V4H9zm0 5.5c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm6 4.5v1.38c-.83.33-1.5 1-1.83 1.83H4v2h9.17c.41 1.17 1.52 2 2.83 2s2.42-.83 2.83-2H20v-2h-1.17c-.33-.83-1-1.5-1.83-1.83V14h-2zm1 5.5c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"/></svg>
-        IMU only
+        Hobby IMU
       </button>
       <button class="mode-btn" data-mode="both" onclick="setMode('both')">
         <svg class="mode-icon" viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
@@ -45,50 +45,35 @@
     </div>
 
     <div class="header-right">
-      <div class="zero-controls">
-        <button class="zero-btn" id="zeroBtn" onclick="zeroReference()" title="Place both IMUs in the same orientation, then click to zero">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg>
-          Set Zero
-        </button>
-        <button class="reset-btn" id="resetBtn" onclick="resetReference()" title="Return to absolute values">
-          Reset
-        </button>
+      <button class="btn" id="zeroBtn" onclick="zeroReference()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg>
+        Set Zero
+      </button>
+      <button class="btn" id="resetBtn" onclick="resetReference()" title="Return to absolute values">Reset</button>
+
+      <div class="conn-pill phone" id="phoneConn">
+        <span class="conn-dot"></span> Phone
       </div>
-      <div class="status-bar">
-        <div class="conn-pill" id="phoneConn">
-          <span class="conn-dot"></span>Phone
-        </div>
-        <div class="conn-pill" id="imuConn">
-          <span class="conn-dot"></span>IMU
-        </div>
+      <div class="conn-pill imu" id="imuConn">
+        <span class="conn-dot"></span> IMU
       </div>
     </div>
   </header>
 
   <!-- ── Sync status bar ──────────────────────────────────── -->
-  <div class="sync-bar" id="syncBar">
+  <div class="sync-bar glass-inner" id="syncBar">
     <span class="sync-item">
-      <span class="sync-label">Phone</span>
-      <span class="sync-ts" id="syncPhoneTs">—</span>
-    </span>
-    <span class="sync-divider">|</span>
-    <span class="sync-item">
-      <span class="sync-label">IMU</span>
-      <span class="sync-ts" id="syncImuTs">—</span>
-    </span>
-    <span class="sync-divider">|</span>
-    <span class="sync-item">
-      <span class="sync-label">Sync offset</span>
+      <span class="sync-label">System Offset</span>
       <span class="sync-offset" id="syncOffset">—</span>
     </span>
     <span class="sync-divider">|</span>
     <span class="sync-item" id="syncModeLabel">
-      <span class="sync-label">Mode</span>
-      <span class="sync-ts" id="syncMode">absolute</span>
+      <span class="sync-label">Ref Mode</span>
+      <span class="sync-ts" id="syncMode">Absolute</span>
     </span>
     <span class="sync-divider">|</span>
     <span class="sync-item">
-      <span class="sync-label">Output rate</span>
+      <span class="sync-label">Rate</span>
       <span class="sync-ts" id="syncRateOut">50 Hz</span>
     </span>
     <span class="sync-divider">|</span>
@@ -98,7 +83,6 @@
         <button class="rate-btn" onclick="setRate(25)">25</button>
         <button class="rate-btn active" onclick="setRate(50)">50</button>
         <button class="rate-btn" onclick="setRate(100)">100</button>
-        <span class="sync-label" style="margin-left:4px">Hz</span>
       </div>
     </span>
   </div>
@@ -107,31 +91,34 @@
   <main class="main" id="main">
 
     <!-- ═══ PHONE PANEL ════════════════════════════════════════ -->
-    <section class="panel glass" id="phonePanel" data-label="📱 Phone IMU">
-
+    <section class="panel glass" id="phonePanel" data-label="Phone IMU">
       <div class="panel-header">
-        <h2 class="panel-title phone-color">Phone IMU</h2>
-        <div class="panel-meta">
-          <span class="rate-badge" id="phoneRate">0 Hz</span>
-        </div>
+        <h2 class="panel-title phone-color">Phone Metrics</h2>
+        <span class="rate-badge" id="phoneRate">0 Hz</span>
       </div>
 
       <!-- YPR Gauges -->
       <div class="gauges-row">
-        <div class="gauge-wrap">
-          <canvas id="gaugePhoneYaw"   class="gauge-canvas" width="140" height="140"></canvas>
-          <div class="gauge-label phone-color">YAW</div>
-          <div class="gauge-value" id="valPhoneYaw">+0.0°</div>
+        <div class="gauge-wrap" data-axis="yaw">
+          <div id="gaugePhoneYaw" class="gauge-fill"></div>
+          <div class="gauge-info center">
+            <div class="gauge-label">YAW</div>
+            <div class="gauge-value mono" id="valPhoneYaw">+0.0°</div>
+          </div>
         </div>
-        <div class="gauge-wrap">
-          <canvas id="gaugePhonePitch" class="gauge-canvas" width="140" height="140"></canvas>
-          <div class="gauge-label phone-color">PITCH</div>
-          <div class="gauge-value" id="valPhonePitch">+0.0°</div>
+        <div class="gauge-wrap" data-axis="pitch">
+          <div id="gaugePhonePitch" class="gauge-fill"></div>
+          <div class="gauge-info center">
+            <div class="gauge-label">PITCH</div>
+            <div class="gauge-value mono" id="valPhonePitch">+0.0°</div>
+          </div>
         </div>
-        <div class="gauge-wrap">
-          <canvas id="gaugePhoneRoll"  class="gauge-canvas" width="140" height="140"></canvas>
-          <div class="gauge-label phone-color">ROLL</div>
-          <div class="gauge-value" id="valPhoneRoll">+0.0°</div>
+        <div class="gauge-wrap" data-axis="roll">
+          <div id="gaugePhoneRoll" class="gauge-fill"></div>
+          <div class="gauge-info center">
+            <div class="gauge-label">ROLL</div>
+            <div class="gauge-value mono" id="valPhoneRoll">+0.0°</div>
+          </div>
         </div>
       </div>
 
@@ -156,36 +143,39 @@
 
       <!-- 3D Cube -->
       <div class="cube-card glass-inner">
-        <div class="chart-title">3D Orientation</div>
+        <div class="chart-title">Spatial Orientation</div>
         <canvas id="cubePhone" class="cube-canvas"></canvas>
       </div>
     </section>
 
     <!-- ═══ IMU PANEL ════════════════════════════════════════════ -->
-    <section class="panel glass" id="imuPanel" data-label="🔧 Hobby IMU" style="display:none">
-
+    <section class="panel glass" id="imuPanel" style="display:none">
       <div class="panel-header">
-        <h2 class="panel-title imu-color">Hobby IMU</h2>
-        <div class="panel-meta">
-          <span class="rate-badge imu-badge" id="imuRate">0 Hz</span>
-        </div>
+        <h2 class="panel-title imu-color">Hobby IMU Metrics</h2>
+        <span class="rate-badge imu-badge" id="imuRate">0 Hz</span>
       </div>
 
       <div class="gauges-row">
-        <div class="gauge-wrap">
-          <canvas id="gaugeImuYaw"   class="gauge-canvas" width="140" height="140"></canvas>
-          <div class="gauge-label imu-color">YAW</div>
-          <div class="gauge-value" id="valImuYaw">+0.0°</div>
+        <div class="gauge-wrap" data-axis="yaw">
+          <div id="gaugeImuYaw" class="gauge-fill"></div>
+          <div class="gauge-info center">
+            <div class="gauge-label">YAW</div>
+            <div class="gauge-value mono" id="valImuYaw">+0.0°</div>
+          </div>
         </div>
-        <div class="gauge-wrap">
-          <canvas id="gaugeImuPitch" class="gauge-canvas" width="140" height="140"></canvas>
-          <div class="gauge-label imu-color">PITCH</div>
-          <div class="gauge-value" id="valImuPitch">+0.0°</div>
+        <div class="gauge-wrap" data-axis="pitch">
+          <div id="gaugeImuPitch" class="gauge-fill"></div>
+          <div class="gauge-info center">
+            <div class="gauge-label">PITCH</div>
+            <div class="gauge-value mono" id="valImuPitch">+0.0°</div>
+          </div>
         </div>
-        <div class="gauge-wrap">
-          <canvas id="gaugeImuRoll"  class="gauge-canvas" width="140" height="140"></canvas>
-          <div class="gauge-label imu-color">ROLL</div>
-          <div class="gauge-value" id="valImuRoll">+0.0°</div>
+        <div class="gauge-wrap" data-axis="roll">
+          <div id="gaugeImuRoll" class="gauge-fill"></div>
+          <div class="gauge-info center">
+            <div class="gauge-label">ROLL</div>
+            <div class="gauge-value mono" id="valImuRoll">+0.0°</div>
+          </div>
         </div>
       </div>
 
@@ -203,77 +193,87 @@
       </div>
 
       <div class="cube-card glass-inner">
-        <div class="chart-title">3D Orientation</div>
+        <div class="chart-title">Spatial Orientation</div>
         <canvas id="cubeImu" class="cube-canvas"></canvas>
       </div>
     </section>
 
     <!-- ═══ COMPARE PANEL ════════════════════════════════════════ -->
-    <section class="panel" id="bothPanel" style="display:none">
+    <section class="panel" id="bothPanel" style="display:none; padding: 0;">
+
+      <!-- Delta / Error section -->
+      <div class="delta-row">
+        <div class="delta-card glass">
+          <div class="delta-label">Δ Yaw Error</div>
+          <div class="delta-value mono" id="deltaYaw">0.00°</div>
+          <canvas id="chartDeltaYaw" class="delta-chart"></canvas>
+        </div>
+        <div class="delta-card glass">
+          <div class="delta-label">Δ Pitch Error</div>
+          <div class="delta-value mono" id="deltaPitch">0.00°</div>
+          <canvas id="chartDeltaPitch" class="delta-chart"></canvas>
+        </div>
+        <div class="delta-card glass">
+          <div class="delta-label">Δ Roll Error</div>
+          <div class="delta-value mono" id="deltaRoll">0.00°</div>
+          <canvas id="chartDeltaRoll" class="delta-chart"></canvas>
+        </div>
+      </div>
 
       <!-- Two cubes side by side -->
-      <div class="compare-cubes">
+      <div class="compare-cubes" style="margin-top: 16px;">
         <div class="compare-cube-wrap glass">
           <div class="panel-header">
-            <h2 class="panel-title phone-color">Phone IMU</h2>
+            <h2 class="panel-title phone-color">Phone Frame</h2>
             <span class="rate-badge" id="cmpPhoneRate">0 Hz</span>
           </div>
           <canvas id="cubeComparePhone" class="cube-canvas cube-large"></canvas>
         </div>
         <div class="compare-cube-wrap glass">
           <div class="panel-header">
-            <h2 class="panel-title imu-color">Hobby IMU</h2>
+            <h2 class="panel-title imu-color">IMU Frame</h2>
             <span class="rate-badge imu-badge" id="cmpImuRate">0 Hz</span>
           </div>
           <canvas id="cubeCompareImu" class="cube-canvas cube-large"></canvas>
         </div>
       </div>
 
-      <!-- Delta / Error section -->
-      <div class="delta-row">
-        <div class="delta-card glass">
-          <div class="delta-label">ΔYaw</div>
-          <div class="delta-value" id="deltaYaw">0.00°</div>
-          <canvas id="chartDeltaYaw" class="delta-chart"></canvas>
+      <!-- Overlaid YPR chart -->
+      <div class="chart-card glass" style="margin-top: 16px; padding: 24px;">
+        <div class="chart-title">
+          Yaw Overlay Analysis
+          <span class="legend-dot" style="background:#00E5FF"></span><span class="legend-label mono">Phone</span>
+          <span class="legend-dot" style="background:#FF6D00"></span><span class="legend-label mono">IMU</span>
         </div>
-        <div class="delta-card glass">
-          <div class="delta-label">ΔPitch</div>
-          <div class="delta-value" id="deltaPitch">0.00°</div>
-          <canvas id="chartDeltaPitch" class="delta-chart"></canvas>
-        </div>
-        <div class="delta-card glass">
-          <div class="delta-label">ΔRoll</div>
-          <div class="delta-value" id="deltaRoll">0.00°</div>
-          <canvas id="chartDeltaRoll" class="delta-chart"></canvas>
-        </div>
+        <canvas id="chartOverlayYaw" class="line-chart" style="height: 180px;"></canvas>
       </div>
 
       <!-- Side-by-side YPR table -->
-      <div class="compare-table glass">
-        <table>
+      <div class="compare-table-wrap glass" style="margin-top: 16px; padding: 12px 24px;">
+        <table class="compare-table">
           <thead>
             <tr>
-              <th></th>
-              <th class="phone-color">Phone</th>
+              <th>Matrix</th>
+              <th class="phone-color">Phone Ref</th>
               <th class="imu-color">Hobby IMU</th>
-              <th class="diff-color">Δ Error</th>
+              <th class="diff-color">Δ Deviation</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td class="row-label">Yaw</td>
+              <td>Yaw</td>
               <td class="mono" id="cmpPhoneYaw">—</td>
               <td class="mono" id="cmpImuYaw">—</td>
               <td class="mono diff-color" id="cmpDeltaYaw">—</td>
             </tr>
             <tr>
-              <td class="row-label">Pitch</td>
+              <td>Pitch</td>
               <td class="mono" id="cmpPhonePitch">—</td>
               <td class="mono" id="cmpImuPitch">—</td>
               <td class="mono diff-color" id="cmpDeltaPitch">—</td>
             </tr>
             <tr>
-              <td class="row-label">Roll</td>
+              <td>Roll</td>
               <td class="mono" id="cmpPhoneRoll">—</td>
               <td class="mono" id="cmpImuRoll">—</td>
               <td class="mono diff-color" id="cmpDeltaRoll">—</td>
@@ -282,20 +282,11 @@
         </table>
       </div>
 
-      <!-- Overlaid YPR chart -->
-      <div class="chart-card glass">
-        <div class="chart-title">
-          Yaw — Overlay
-          <span class="legend-dot" style="background:#00E5FF"></span><span class="legend-label">Phone</span>
-          <span class="legend-dot" style="background:#FF6D00"></span><span class="legend-label">IMU</span>
-        </div>
-        <canvas id="chartOverlayYaw" class="line-chart"></canvas>
-      </div>
     </section>
 
   </main>
 
-  <!-- SocketIO + Three.js from CDN -->
+  <!-- SocketIO + Three.js -->
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="app.js"></script>

@@ -1,0 +1,4 @@
+com.robomanipal.imusensor.test.app-androidTest-0 C:\RoboManipal\IMU_APP\app\build\generated\res\resValues\androidTest\debug
+com.robomanipal.imusensor.test.app-mergeDebugAndroidTestResources-1 C:\RoboManipal\IMU_APP\app\build\intermediates\incremental\debugAndroidTest\mergeDebugAndroidTestResources\merged.dir
+com.robomanipal.imusensor.test.app-mergeDebugAndroidTestResources-2 C:\RoboManipal\IMU_APP\app\build\intermediates\incremental\debugAndroidTest\mergeDebugAndroidTestResources\stripped.dir
+com.robomanipal.imusensor.test.app-debugAndroidTest-3 C:\RoboManipal\IMU_APP\app\build\intermediates\merged_res\debugAndroidTest\mergeDebugAndroidTestResources
