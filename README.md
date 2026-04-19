@@ -278,6 +278,60 @@ This handles the ±180° boundary: e.g. phone at 179°, IMU at -178° → delta 
 
 Click **"Reset"** to return to absolute values.
 
+### Auto Align Axes
+
+Different IMU chips define their body-frame axes differently. A BNO055 mounted on a breakout board may label its physical tilt axis as "roll", while the phone's rotation vector sensor calls the same physical motion "pitch". Signs can also be flipped — clockwise rotation might be positive on the phone but negative on the hobby IMU. The **Auto Align** feature detects and corrects all of these mismatches automatically, without any firmware changes.
+
+**The problem:**
+```
+Physical motion        Phone reports     BNO055 reports
+─────────────────────  ────────────────  ────────────────
+Tilt forward           Pitch +10°        Roll -10°
+Tilt right             Roll +10°         Pitch +10°
+Rotate clockwise       Yaw +10°          Yaw -10°
+```
+A simple "Set Zero" cannot fix this — zeroing only removes a constant offset. When the axes themselves are swapped or inverted, the error grows with rotation angle.
+
+**How it works:**
+
+1. Click **"Auto Align"** in the dashboard header
+2. A 10-second countdown modal appears
+3. Hold both sensors firmly together (like a sandwich) and **actively wiggle** them in all three degrees of freedom — tilt forward/back, tilt side-to-side, and rotate flat
+4. After 10 seconds, the server runs a **correlation-based brute-force search** across all 48 possible axis mappings (6 permutations × 8 sign combinations)
+5. The mapping with the highest total Pearson correlation is applied permanently (until server restart or next alignment)
+6. A "Set Zero" is automatically triggered to remove any remaining absolute offset
+
+**Algorithm detail:**
+
+```
+1. Collect ~500 simultaneous [Yaw, Pitch, Roll] samples from Phone and raw IMU
+2. Unwrap angles (handle ±180° yaw boundary crossings)
+3. Remove DC offset (subtract mean from each axis)
+4. For each of 48 candidate mappings (perm, sign):
+     For each axis i ∈ {0=Yaw, 1=Pitch, 2=Roll}:
+       candidate[i] = sign[i] × IMU_raw[perm[i]]
+       r[i] = PearsonCorrelation(Phone[i], candidate[i])
+     total_corr = r[0] + r[1] + r[2]
+5. Winner = argmax(total_corr)
+   Perfect alignment → total_corr ≈ 3.0 (r=+1.0 per axis)
+```
+
+**Why correlation?** Pearson correlation measures whether two signals move together (r=+1), move oppositely (r=-1), or are unrelated (r=0). It is invariant to scale and offset, so it works even if the two sensors have different calibrations or noise floors. When the user tilts in pitch, only one IMU channel will strongly correlate with the phone's pitch — the algorithm finds that channel and its sign.
+
+**Example output:**
+```
+Phone Yaw   = +IMU Yaw   (r=0.994)
+Phone Pitch = +IMU Roll  (r=0.987)
+Phone Roll  = -IMU Pitch (r=0.991)
+```
+This tells you: the BNO055's "Roll" is physically the phone's "Pitch", and the BNO055's "Pitch" is the phone's "Roll" but with inverted sign.
+
+**Tips for best results:**
+- Move **all three axes** during the 10-second window — if you only rotate in yaw, the algorithm can identify yaw but cannot distinguish pitch from roll
+- Larger motions (±30° or more) give cleaner correlations than small wiggles
+- Both sensors must be physically locked together — any relative motion between them adds noise and reduces correlation quality
+- A total correlation above 2.5 indicates a reliable result; below 2.0 suggests insufficient motion or a loose physical coupling
+
 ### Rate Matching
 
 The two sources will almost certainly produce data at different rates:
@@ -739,3 +793,6 @@ The classic non-overlapping Allan variance uses each cluster only once, wasting 
 
 ### Why compute analysis client-side in the browser?
 Allan variance is CPU-intensive (O(N × number_of_tau_decades) operations). Running it on the server would block the eventlet cooperative scheduler, freezing all WebSocket broadcasts during computation. Offloading to the browser lets JavaScript run on a separate thread via the V8 engine without affecting live data delivery. The server only stores and transfers the raw sample buffer.
+
+### Why Pearson correlation for axis alignment, not rotation matrices?
+The axis alignment problem is fundamentally a **channel permutation** problem, not a rotation problem. Both sensors already output valid ZYX Euler angles — the only difference is which physical axis each sensor calls "X", "Y", or "Z", and with what sign convention. Correlation directly answers the question "when Phone Pitch goes up, which IMU channel also goes up?" without any intermediate mathematical representation. Alternative approaches using `scipy.spatial.transform.Rotation` and SO(3) similarity transforms (`S × R × S^T`) are mathematically elegant but introduce failure modes: Euler angle linearization errors near gimbal lock, conjugation order mistakes (`S × R × S^T` vs `S^T × R × S`), and the need to filter by determinant sign. Correlation is immune to all of these — it operates on the raw scalar time series and requires only that the user move enough to produce variance on each axis.
