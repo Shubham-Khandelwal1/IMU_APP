@@ -23,12 +23,15 @@ import json
 import re
 import socket
 import threading
+import traceback
 from collections import deque
 from typing import Optional
 import time
 from datetime import datetime
 import numpy as np
 from scipy.optimize import minimize
+
+import fusion
 
 from flask import Flask, render_template, send_from_directory
 from flask_socketio import SocketIO
@@ -88,6 +91,26 @@ aligning_axes = False
 align_start_ts = 0.0
 align_phone_buffer = []  # list of [yaw, pitch, roll]
 align_imu_buffer = []    # list of [raw_yaw, raw_pitch, raw_roll]
+
+# ── Sensor Fusion Benchmarking State ──────────────────────────────────────
+fusion_filters = {
+    "complementary": fusion.ComplementaryFilter(),
+    "comp_quat": fusion.ComplementaryQuatFilter(),
+    "madgwick": fusion.MadgwickFilter(),
+    "mahony": fusion.MahonyFilter(),
+    "ekf": fusion.EKFFilter()
+}
+
+# The latest Euler outputs from the fusion algorithms
+fusion_results = {
+    "complementary": {"yaw": 0.0, "pitch": 0.0, "roll": 0.0},
+    "comp_quat": {"yaw": 0.0, "pitch": 0.0, "roll": 0.0},
+    "madgwick": {"yaw": 0.0, "pitch": 0.0, "roll": 0.0},
+    "mahony": {"yaw": 0.0, "pitch": 0.0, "roll": 0.0},
+    "ekf": {"yaw": 0.0, "pitch": 0.0, "roll": 0.0}
+}
+fusion_compute_us = { name: 0 for name in fusion_filters }
+last_fusion_ts = 0.0
 
 def angle_diff(a: float, b: float) -> float:
     """Subtract two angles with wrapping to -180..+180."""
@@ -296,6 +319,7 @@ def udp_listener(port: int):
                             "ts": pc_ts - record_start,
                             "gx": g[0], "gy": g[1], "gz": g[2],
                             "ax": a[0], "ay": a[1], "az": a[2],
+                            "mx": phone_data["mag"][0], "my": phone_data["mag"][1], "mz": phone_data["mag"][2],
                             "yaw": e["yaw"], "pitch": e["pitch"], "roll": e["roll"],
                         })
         except socket.timeout:
@@ -314,65 +338,102 @@ def serial_listener(port: str, baud: int):
         try:
             print(f"[Serial] Connecting to {port} @ {baud}")
             ser = serial.Serial(port, baud, timeout=1)
-            print(f"[Serial] Connected to {port}")
+            print(f"[Serial] Connected to {port}", flush=True)
+            ser.reset_input_buffer()
 
-            pkt_count = 0
-            t_window  = time.time()
+            try:
+                pkt_count = 0
+                t_window  = time.time()
 
-            while True:
-                line = ser.readline().decode("utf-8", errors="ignore")
-                parsed = parse_imu_line(line)
-                if parsed:
-                    pkt_count += 1
-                    now     = time.time()
-                    elapsed = now - t_window
-                    if elapsed >= 1.0:
-                        rate      = pkt_count / elapsed
-                        pkt_count = 0
-                        t_window  = now
-                    else:
-                        rate = imu_data["rate_hz"]
+                while True:
+                    line = ser.readline().decode("utf-8", errors="ignore")
+                    if not line.strip(): 
+                        continue
+                    parsed = parse_imu_line(line)
+                    if parsed:
+                        pkt_count += 1
+                        now     = time.time()
+                        elapsed = now - t_window
+                        if elapsed >= 1.0:
+                            rate      = pkt_count / elapsed
+                            pkt_count = 0
+                            t_window  = now
+                        else:
+                            rate = imu_data["rate_hz"]
 
-                    with _lock:
-                        pc_ts = time.perf_counter()
-                        
-                        raw_e = parsed.get("euler", {"yaw": 0.0, "pitch": 0.0, "roll": 0.0})
-                        
-                        # Apply axis alignment: simple permutation + sign flip
-                        perm = imu_axis_map["perm"]
-                        sign = imu_axis_map["sign"]
-                        raw_vec = [raw_e["yaw"], raw_e["pitch"], raw_e["roll"]]
-                        mapped_e = {
-                            "yaw":   sign[0] * raw_vec[perm[0]],
-                            "pitch": sign[1] * raw_vec[perm[1]],
-                            "roll":  sign[2] * raw_vec[perm[2]],
-                        }
+                        with _lock:
+                            pc_ts = time.perf_counter()
+                            
+                            raw_e = parsed.get("euler", {"yaw": 0.0, "pitch": 0.0, "roll": 0.0})
+                            raw_acc = parsed.get("accel", [0.0, 0.0, 0.0])
+                            raw_gyr = parsed.get("gyro",  [0.0, 0.0, 0.0])
+                            raw_mag = parsed.get("mag",   [0.0, 0.0, 0.0])
+                            
+                            # Apply axis alignment: simple permutation + sign flip
+                            perm = imu_axis_map["perm"]
+                            sign = imu_axis_map["sign"]
+                            
+                            def map_vec(v):
+                                if len(v) != 3: return [0,0,0]
+                                return [sign[0]*v[perm[0]], sign[1]*v[perm[1]], sign[2]*v[perm[2]]]
+                                
+                            mapped_e = {
+                                "yaw":   sign[0] * raw_e["yaw" if perm[0]==0 else "pitch" if perm[0]==1 else "roll"],
+                                "pitch": sign[1] * raw_e["yaw" if perm[1]==0 else "pitch" if perm[1]==1 else "roll"],
+                                "roll":  sign[2] * raw_e["yaw" if perm[2]==0 else "pitch" if perm[2]==1 else "roll"],
+                            }
+                            
+                            # Also remap raw vectors for the fusion algorithms
+                            acc_mapped = map_vec(raw_acc)
+                            gyr_mapped = map_vec(raw_gyr)
+                            mag_mapped = map_vec(raw_mag)
+                            
+                            # Run fusion algorithms
+                            global last_fusion_ts
+                            dt_fusion = pc_ts - last_fusion_ts if last_fusion_ts > 0 else 0.02
+                            last_fusion_ts = pc_ts
+                            
+                            for name, filt in fusion_filters.items():
+                                t_start = time.perf_counter()
+                                filt.update(acc_mapped, gyr_mapped, mag_mapped, dt_fusion)
+                                t_end = time.perf_counter()
+                                fusion_results[name] = filt.get_euler()
+                                
+                                # Extremely simple low-pass filter on computation time
+                                us = (t_end - t_start) * 1e6
+                                fusion_compute_us[name] = fusion_compute_us[name] * 0.95 + us * 0.05
 
-                        imu_data.update({
-                            "connected": True,
-                            "last_seen": time.time(),
-                            "pc_ts":     pc_ts,
-                            "accel":  parsed.get("accel", [0, 0, 0]),
-                            "gyro":   parsed.get("gyro",  [0, 0, 0]),
-                            "mag":    parsed.get("mag",   [0, 0, 0]),
-                            "calib":  parsed.get("calib", [0, 0, 0, 0]),
-                            "euler":  mapped_e,
-                            "raw_euler": raw_e,
-                            "rate_hz": round(rate, 1),
-                        })
-                        if recording:
-                            e = imu_data["euler"]
-                            g = imu_data["gyro"]
-                            a = imu_data["accel"]
-                            imu_buffer.append({
-                                "ts": pc_ts - record_start,
-                                "gx": g[0], "gy": g[1], "gz": g[2],
-                                "ax": a[0], "ay": a[1], "az": a[2],
-                                "yaw": e["yaw"], "pitch": e["pitch"], "roll": e["roll"],
+                            imu_data.update({
+                                "connected": True,
+                                "last_seen": time.time(),
+                                "pc_ts":     pc_ts,
+                                "accel":     acc_mapped,
+                                "gyro":      gyr_mapped,
+                                "mag":       mag_mapped,
+                                "calib":     parsed.get("calib", [0, 0, 0, 0]),
+                                "euler":     mapped_e,
+                                "raw_euler": raw_e,
+                                "rate_hz":   round(rate, 1),
                             })
+                            if recording:
+
+                                e = imu_data["euler"]
+                                g = imu_data["gyro"]
+                                a = imu_data["accel"]
+                                imu_buffer.append({
+                                    "ts": pc_ts - record_start,
+                                    "gx": g[0], "gy": g[1], "gz": g[2],
+                                    "ax": a[0], "ay": a[1], "az": a[2],
+                                    "mx": imu_data["mag"][0], "my": imu_data["mag"][1], "mz": imu_data["mag"][2],
+                                    "yaw": e["yaw"], "pitch": e["pitch"], "roll": e["roll"],
+                                })
+            finally:
+                ser.close()
+                print(f"[Serial] Closed connection to {port}", flush=True)
 
         except Exception as e:
-            print(f"[Serial] Error: {e} — retrying in 3 s")
+            print(f"[Serial] FATAL Error: {e}", flush=True)
+            traceback.print_exc()
             with _lock:
                 imu_data["connected"] = False
             time.sleep(3)
@@ -532,11 +593,25 @@ def broadcaster():
                 "target_rate_hz": rate_hz,
                 "ts":             time.time(),
             }
+            
+            # Additional fusion payload structure
+            # To avoid sending too much data if not needed, we send it alongside but packed
+            fusion_payload = {
+                "phone": {"yaw": p_euler["yaw"], "pitch": p_euler["pitch"], "roll": p_euler["roll"]},
+                "chip": {"yaw": m_euler["yaw"], "pitch": m_euler["pitch"], "roll": m_euler["roll"]},
+                "complementary": dict(fusion_results["complementary"]),
+                "comp_quat": dict(fusion_results["comp_quat"]),
+                "madgwick": dict(fusion_results["madgwick"]),
+                "mahony": dict(fusion_results["mahony"]),
+                "ekf": dict(fusion_results["ekf"]),
+                "compute_us": {k: int(v) for k, v in fusion_compute_us.items()}
+            }
 
         # ── Emit OUTSIDE the lock (prevents deadlock) ──────────
         if align_emit is not None:
             socketio.emit("axis_align_complete", align_emit)
         socketio.emit("sensor_data", payload)
+        socketio.emit("fusion_data", fusion_payload)
         socketio.sleep(1.0 / max(rate_hz, 1))
 
 
@@ -589,6 +664,27 @@ def on_set_rate(hz):
     print(f"[Rate] Output rate set to {hz} Hz")
     socketio.emit("rate_ack", {"target_rate_hz": hz})
 
+@socketio.on("set_fusion_param")
+def handle_set_fusion_param(data):
+    """Live-tune parameters for fusion algorithms."""
+    filter_name = data.get("filter")
+    param = data.get("param")
+    value = float(data.get("value", 0))
+    
+    with _lock:
+        if filter_name in fusion_filters:
+            fusion_filters[filter_name].set_params(**{param: value})
+            print(f"[Fusion] Updated {filter_name} {param} = {value}")
+            socketio.emit("fusion_param_ack", {"filter": filter_name, "param": param, "value": value})
+
+@socketio.on("reset_fusion")
+def handle_reset_fusion():
+    """Reset all fusion filter states."""
+    with _lock:
+        for f in fusion_filters.values():
+            f.reset()
+    print("[Fusion] Reset all filter states.")
+
 @socketio.on("start_axis_align")
 def on_start_axis_align():
     global aligning_axes, align_start_ts
@@ -599,6 +695,85 @@ def on_start_axis_align():
         align_imu_buffer.clear()
     print("[Align] Started 10-second axis alignment calibration")
     socketio.emit("axis_align_ack", {"duration_s": 10})
+
+@socketio.on("run_auto_tune")
+def on_run_auto_tune():
+    # Execute offline tuning on the recorded phone vs imu buffers
+    with _lock:
+        P = list(phone_buffer)
+        I = list(imu_buffer)
+        
+    if len(I) < 50 or len(P) < 50:
+        socketio.emit("auto_tune_result", {"error": "Not enough data recorded! Collect at least 5 seconds."})
+        return
+        
+    print(f"[Fusion] Auto-Tuning over {len(I)} IMU samples...")
+    
+    # We must match IMU samples to Phone samples temporally. 
+    # Since they both save ts = pc_ts - record_start, we can interpolate or pair them.
+    # For simplicity, we just extract common points or assume comparable lengths.
+    
+    # Pair by closest timestamp
+    paired = []
+    p_idx = 0
+    for im in I:
+        while p_idx < len(P)-1 and P[p_idx+1]["ts"] < im["ts"]:
+            p_idx += 1
+        ref = P[p_idx]
+        if abs(ref["ts"] - im["ts"]) < 0.1: # within 100ms
+            paired.append((im, ref))
+            
+    if not paired:
+        socketio.emit("auto_tune_result", {"error": "Sync issue between buffers."})
+        return
+        
+    dt = paired[-1][0]["ts"] - paired[0][0]["ts"]
+    mean_dt = dt / len(paired) if len(paired) > 1 else 0.02
+    
+    def simulate_filter(filt_class, params):
+        f = filt_class()
+        f.set_params(**params)
+        rms_sq = 0.0
+        for im, ref in paired:
+            acc = [im["ax"], im["ay"], im["az"]]
+            gyr = [im["gx"], im["gy"], im["gz"]]
+            mag = [im["mx"], im["my"], im["mz"]]
+            f.update(acc, gyr, mag, mean_dt)
+            e = f.get_euler()
+            rms_sq += angle_diff(ref["yaw"], e["yaw"])**2
+            rms_sq += angle_diff(ref["pitch"], e["pitch"])**2
+            rms_sq += angle_diff(ref["roll"], e["roll"])**2
+        return math.sqrt(rms_sq / (len(paired) * 3))
+        
+    # Optimizing Complementary (alpha)
+    res_comp = minimize(lambda x: simulate_filter(fusion.ComplementaryFilter, {"alpha": x[0]}), [0.98], bounds=[(0.5, 0.999)])
+    opt_alpha = float(res_comp.x[0])
+    
+    # Optimizing Madgwick (beta)
+    res_madg = minimize(lambda x: simulate_filter(fusion.MadgwickFilter, {"beta": x[0]}), [0.1], bounds=[(0.001, 1.0)])
+    opt_beta = float(res_madg.x[0])
+    
+    # Optimizing Mahony Kp
+    res_maho = minimize(lambda x: simulate_filter(fusion.MahonyFilter, {"kp": x[0], "ki": 0.0}), [1.0], bounds=[(0.1, 10.0)])
+    opt_kp = float(res_maho.x[0])
+    
+    # Apply
+    with _lock:
+        fusion_filters["complementary"].set_params(alpha=opt_alpha)
+        fusion_filters["comp_quat"].set_params(alpha=opt_alpha)
+        fusion_filters["madgwick"].set_params(beta=opt_beta)
+        fusion_filters["mahony"].set_params(kp=opt_kp)
+        
+    res_payload = {
+        "success": True,
+        "complementary": {"alpha": round(opt_alpha, 3)},
+        "comp_quat": {"alpha": round(opt_alpha, 3)},
+        "madgwick": {"beta": round(opt_beta, 3)},
+        "mahony": {"kp": round(opt_kp, 2)}
+    }
+    print(f"[Fusion] Tuned: {res_payload}")
+    socketio.emit("auto_tune_result", res_payload)
+
 
 # ── Analysis recording events ──────────────────────────────────────────────
 
@@ -707,6 +882,10 @@ def analysis_page():
 @app.route("/calibration")
 def calibration_page():
     return send_from_directory("web", "calibration.html")
+
+@app.route("/fusion")
+def fusion_page():
+    return send_from_directory("web", "fusion.html")
 
 # ── Entry point ────────────────────────────────────────────────────────────
 
