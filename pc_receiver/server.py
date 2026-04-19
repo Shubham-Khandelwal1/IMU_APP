@@ -27,9 +27,8 @@ from collections import deque
 from typing import Optional
 import time
 from datetime import datetime
-
-import eventlet
-eventlet.monkey_patch()
+import numpy as np
+from scipy.optimize import minimize
 
 from flask import Flask, render_template, send_from_directory
 from flask_socketio import SocketIO
@@ -37,7 +36,7 @@ from flask_socketio import SocketIO
 # ── Flask + SocketIO setup ─────────────────────────────────────────────────
 app = Flask(__name__, static_folder="web")
 app.config["SECRET_KEY"] = "imu-sensor-secret"
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
 
 # ── Shared state ───────────────────────────────────────────────────────────
 phone_data = {
@@ -163,19 +162,29 @@ def parse_imu_line(line: str) -> Optional[dict]:
                 result["gyro"] = d["gyro"]
             return result
 
-        # Key-value: YAW:127.30 PITCH:-12.10 ROLL:3.80
+        # Key-value: YAW:127.30 PITCH:-12.10 ROLL:3.80  or  R:0 P:-4 Y:300
         kv = re.findall(r'(\w+)\s*[=:]\s*([+-]?\d+\.?\d*)', line, re.IGNORECASE)
         if kv:
             kv_dict = {k.lower(): float(v) for k, v in kv}
-            if "yaw" in kv_dict:
-                result["euler"]["yaw"]   = kv_dict["yaw"]
-                result["euler"]["pitch"] = kv_dict.get("pitch", 0.0)
-                result["euler"]["roll"]  = kv_dict.get("roll", 0.0)
+            
+            # Map full names or single letter aliases
+            val_y = kv_dict.get("yaw", kv_dict.get("y"))
+            val_p = kv_dict.get("pitch", kv_dict.get("p"))
+            val_r = kv_dict.get("roll", kv_dict.get("r"))
+            
+            if val_y is not None or val_p is not None or val_r is not None:
+                result["euler"]["yaw"]   = val_y if val_y is not None else 0.0
+                result["euler"]["pitch"] = val_p if val_p is not None else 0.0
+                result["euler"]["roll"]  = val_r if val_r is not None else 0.0
+
             if "ax" in kv_dict:
                 result["accel"] = [kv_dict.get("ax", 0), kv_dict.get("ay", 0), kv_dict.get("az", 0)]
             if "gx" in kv_dict:
                 result["gyro"]  = [kv_dict.get("gx", 0), kv_dict.get("gy", 0), kv_dict.get("gz", 0)]
-            if "yaw" in kv_dict:
+            if "mx" in kv_dict:
+                result["mag"]  = [kv_dict.get("mx", 0), kv_dict.get("my", 0), kv_dict.get("mz", 0)]
+                
+            if val_y is not None or val_p is not None or val_r is not None:
                 return result
 
         # Plain CSV: yaw,pitch,roll  or  yaw,pitch,roll,ax,ay,az,gx,gy,gz
@@ -344,7 +353,7 @@ def broadcaster():
                 "ts":             time.time(),
             }
         socketio.emit("sensor_data", payload)
-        eventlet.sleep(1.0 / max(rate_hz, 1))
+        socketio.sleep(1.0 / max(rate_hz, 1))
 
 
 # ── Flask routes ───────────────────────────────────────────────────────────
@@ -444,9 +453,65 @@ def on_clear_buffers():
         imu_buffer.clear()
     socketio.emit("recording_ack", {"recording": False, "n_phone": 0, "n_imu": 0})
 
+@socketio.on("compute_mag_calibration")
+def on_compute_mag_calibration(data):
+    points = np.array(data.get("points", []))
+    if len(points) < 10:
+        socketio.emit("mag_calibration_result", {"error": "Need at least 10 points"})
+        return
+        
+    print(f"[Calibration] Solving hard/soft iron for {len(points)} points...")
+    
+    # We want to find vector V and symmetric matrix W such that || W * (P - V) || ~ B
+    # Let's target B = 50 uT (Earth's average magnetic field)
+    B_target = 50.0 
+    
+    def objective(params):
+        # params: v0, v1, v2, w00, w11, w22, w01, w02, w12
+        V = np.array([params[0], params[1], params[2]])
+        W = np.array([
+            [params[3], params[6], params[7]],
+            [params[6], params[4], params[8]],
+            [params[7], params[8], params[5]]
+        ])
+        
+        # apply transformation
+        P_shifted = points - V
+        P_scaled = P_shifted @ W.T
+        
+        # magnitudes
+        mags = np.linalg.norm(P_scaled, axis=1)
+        
+        # minimize difference from target B
+        return np.sum((mags - B_target)**2)
+
+    # Initial guess
+    # V = mean of points
+    v0 = np.mean(points, axis=0)
+    # W = Identity
+    p0 = [v0[0], v0[1], v0[2], 1.0, 1.0, 1.0, 0.0, 0.0, 0.0]
+    
+    # Minimize error
+    res = minimize(objective, p0, method='Powell')
+    params = res.x
+    
+    V = [float(params[0]), float(params[1]), float(params[2])]
+    W = [
+        [float(params[3]), float(params[6]), float(params[7])],
+        [float(params[6]), float(params[4]), float(params[8])],
+        [float(params[7]), float(params[8]), float(params[5])]
+    ]
+    
+    print(f"[Calibration] Done. V={V}")
+    socketio.emit("mag_calibration_result", {"hard_iron": V, "soft_iron": W})
+
 @app.route("/analysis")
 def analysis_page():
     return send_from_directory("web", "analysis.html")
+
+@app.route("/calibration")
+def calibration_page():
+    return send_from_directory("web", "calibration.html")
 
 # ── Entry point ────────────────────────────────────────────────────────────
 
@@ -484,7 +549,7 @@ def main():
     # Start WebSocket broadcaster
     socketio.start_background_task(broadcaster)
 
-    socketio.run(app, host="0.0.0.0", port=args.web_port, debug=False)
+    socketio.run(app, host="0.0.0.0", port=args.web_port, debug=False, allow_unsafe_werkzeug=True)
 
 
 if __name__ == "__main__":

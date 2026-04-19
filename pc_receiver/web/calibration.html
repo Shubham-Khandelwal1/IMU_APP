@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Magnetometer 3D Calibration Cloud</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="style.css"/>
+  <style>
+    /* ── Calibration-specific CSS ─────────────────────── */
+    .calib-header {
+      position: sticky; top: 16px; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      margin: 0 24px; padding: 12px 20px;
+      background: rgba(10,10,18,0.7);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--r-lg);
+      backdrop-filter: blur(32px) saturate(180%);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08);
+    }
+    .calib-header-left { display: flex; align-items: center; gap: 20px; }
+    .page-title { font-size: 16px; font-weight: 600; color: #fff; display: flex; align-items: center; gap: 8px;}
+    .page-subtitle { font-size: 12px; color: var(--text3); font-family: 'JetBrains Mono', monospace; font-weight: 500; }
+    
+    .status-badge {
+      font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 500;
+      padding: 4px 12px; border-radius: 20px;
+      background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: var(--text2);
+    }
+
+    /* ── Action Island ─────────────────────── */
+    .action-island {
+      margin: 20px 24px 0; padding: 16px 24px;
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;
+      background: var(--surface2); border: 1px solid var(--glass-border);
+      border-radius: var(--r);
+    }
+    .action-group { display: flex; align-items: center; gap: 12px; }
+    
+    .src-btn {
+      padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 500;
+      font-family: inherit; cursor: pointer; transition: all 0.2s cubic-bezier(0.2,0.8,0.2,1);
+      border: 1px solid var(--glass-border); background: var(--glass-bg); color: var(--text2);
+    }
+    .src-btn:hover { background: var(--glass-bg-hover); color: var(--text); }
+    .src-btn.active-phone { border-color: rgba(0,229,255,0.3); background: rgba(0,229,255,0.08); color: var(--phone); box-shadow: 0 4px 12px rgba(0,229,255,0.1); }
+    .src-btn.active-imu { border-color: rgba(255,109,0,0.3); background: rgba(255,109,0,0.08); color: var(--imu); box-shadow: 0 4px 12px rgba(255,109,0,0.1); }
+
+    .record-btn {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 24px; border-radius: var(--r-sm); border: none; cursor: pointer;
+      font-family: inherit; font-size: 13px; font-weight: 600;
+      transition: all 0.25s cubic-bezier(0.2,0.8,0.2,1);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    .record-btn:active { transform: scale(0.96); }
+    .record-btn.start { background: rgba(255,82,82,0.1); border: 1px solid rgba(255,82,82,0.3); color: #FF5252; }
+    .record-btn.start:hover { background: rgba(255,82,82,0.15); border-color: #FF5252; box-shadow: 0 4px 16px rgba(255,82,82,0.2); }
+    .record-btn.stop { background: rgba(105,240,174,0.1); border: 1px solid rgba(105,240,174,0.3); color: #69F0AE; }
+    .record-btn.stop:hover { background: rgba(105,240,174,0.15); border-color: #69F0AE; box-shadow: 0 4px 16px rgba(105,240,174,0.2); }
+    .record-btn.compute { background: rgba(0,229,255,0.1); border: 1px solid rgba(0,229,255,0.3); color: var(--phone); }
+    .record-btn.compute:hover:not(:disabled) { background: rgba(0,229,255,0.15); border-color: var(--phone); box-shadow: 0 4px 16px rgba(0,229,255,0.2); }
+    .record-btn.compute:disabled { opacity: 0.4; cursor: not-allowed; border-color: var(--glass-border); box-shadow: none; color: var(--text3); background: transparent; }
+    .record-btn.clear { background: rgba(255,109,0,0.1); border: 1px solid rgba(255,109,0,0.3); color: var(--imu); }
+    .record-btn.clear:hover { background: rgba(255,109,0,0.15); border-color: var(--imu); box-shadow: 0 4px 16px rgba(255,109,0,0.2); }
+    
+    .record-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+    @keyframes recPulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.85); box-shadow: 0 0 12px currentColor; } }
+    .rec-dot-pulse { animation: recPulse 1.5s ease-in-out infinite; }
+
+    .rec-stats { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text2); display: flex; gap: 16px; }
+    .rec-stats span { color: #fff; font-weight: 500; font-size: 12px; }
+
+    /* ── Main Layout ────────────────────────────────────────── */
+    .calib-main { padding: 24px; max-width: 1500px; margin: 0 auto; display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
+    
+    .canvas-container {
+      background: var(--glass-bg); border: 1px solid var(--glass-border);
+      border-radius: var(--r); padding: 16px; display: flex; flex-direction: column; gap: 16px;
+      height: 600px; position: relative;
+    }
+    #magCanvas {
+      width: 100%; height: 100%; border-radius: var(--r-sm);
+      background: #000;
+    }
+
+    .matrix-panel {
+      display: flex; flex-direction: column; gap: 24px;
+    }
+
+    .stat-card {
+      background: var(--glass-bg); border: 1px solid var(--glass-border);
+      border-radius: var(--r-sm); padding: 16px;
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .stat-card-title {
+      font-size: 12px; font-weight: 600; letter-spacing: 1px; color: var(--text2); text-transform: uppercase;
+      border-bottom: 1px solid var(--glass-border); padding-bottom: 8px;
+    }
+
+    .matrix-grid {
+      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;
+      font-family: 'JetBrains Mono', monospace; font-size: 14px; text-align: center; color: #fff;
+    }
+    .matrix-cell { padding: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 4px; }
+
+    .vector-list {
+      display: flex; flex-direction: column; gap: 8px;
+      font-family: 'JetBrains Mono', monospace; font-size: 14px; color: #fff;
+    }
+    .vector-row { display: flex; justify-content: space-between; padding: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 4px; }
+    .vector-label { color: var(--text3); }
+
+    .legend { position: absolute; bottom: 32px; left: 32px; display: flex; flex-direction: column; gap: 8px; background: rgba(0,0,0,0.5); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); pointer-events: none;}
+    .legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #ccc; }
+    .legend-color { width: 12px; height: 12px; border-radius: 50%; }
+    .legend-color.raw { background: #FF5252; box-shadow: 0 0 8px #FF5252; }
+    .legend-color.cor { background: #69F0AE; box-shadow: 0 0 8px #69F0AE; }
+
+  </style>
+</head>
+<body>
+  
+  <header class="calib-header">
+    <div class="calib-header-left">
+      <div class="page-title">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-5-9c-.83 0-1.5-.67-1.5-1.5S6.17 8 7 8s1.5.67 1.5 1.5S7.83 11 7 11zm10 0c-.83 0-1.5-.67-1.5-1.5S16.17 8 17 8s1.5.67 1.5 1.5S17.83 11 17 11zm-5 4c1.66 0 3-1.34 3-3H9c0 1.66 1.34 3 3 3z"/></svg>
+        3D Magnetometer Calibration
+      </div>
+      <div class="page-subtitle">Hard & Soft Iron Point Cloud</div>
+      <div id="connStatus" class="status-badge">Waiting for connection...</div>
+    </div>
+    <div style="display:flex; gap:16px;">
+      <a href="/" class="status-badge" style="text-decoration:none; color:#fff">← Back to Dashboard</a>
+    </div>
+  </header>
+
+  <div class="action-island">
+    <div class="action-group">
+      <div style="font-size:12px; color:var(--text3); font-weight:500;">Target Source:</div>
+      <button class="src-btn active-phone" id="btnPhone" onclick="setSource('phone')">Phone IMU</button>
+      <button class="src-btn" id="btnImu" onclick="setSource('imu')">Hobby IMU</button>
+    </div>
+    <div class="rec-stats">
+      Collected Points: <span id="numPoints">0</span>
+    </div>
+    <div class="action-group" style="gap: 16px;">
+      <button class="record-btn clear" id="btnClear" onclick="clearPoints()">Clear Cloud</button>
+      <button class="record-btn start" id="btnStart" onclick="toggleCollection()"><div class="record-dot" id="dotRec"></div> <span id="btnStartText">Start Collection</span></button>
+      <button class="record-btn compute" id="btnCompute" onclick="computeCalibration()" disabled>Compute Matrix</button>
+    </div>
+  </div>
+
+  <main class="calib-main">
+    <div class="canvas-container">
+      <canvas id="magCanvas"></canvas>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-color raw"></div>Raw Uncalibrated</div>
+        <div class="legend-item"><div class="legend-color cor"></div>Calibrated Mapping</div>
+      </div>
+    </div>
+
+    <div class="matrix-panel">
+      <div class="stat-card">
+        <div class="stat-card-title">Hard Iron Bias (V)</div>
+        <div class="vector-list">
+          <div class="vector-row"><span class="vector-label">X Offset</span><span id="biasX">0.000</span></div>
+          <div class="vector-row"><span class="vector-label">Y Offset</span><span id="biasY">0.000</span></div>
+          <div class="vector-row"><span class="vector-label">Z Offset</span><span id="biasZ">0.000</span></div>
+        </div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="stat-card-title">Soft Iron Matrix (W)</div>
+        <div class="matrix-grid">
+          <div class="matrix-cell" id="w00">1.000</div>
+          <div class="matrix-cell" id="w01">0.000</div>
+          <div class="matrix-cell" id="w02">0.000</div>
+          <div class="matrix-cell" id="w10">0.000</div>
+          <div class="matrix-cell" id="w11">1.000</div>
+          <div class="matrix-cell" id="w12">0.000</div>
+          <div class="matrix-cell" id="w20">0.000</div>
+          <div class="matrix-cell" id="w21">0.000</div>
+          <div class="matrix-cell" id="w22">1.000</div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="calibration.js"></script>
+</body>
+</html>
