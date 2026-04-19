@@ -17,7 +17,9 @@ const MAX_POINTS = 200;
 let historyYaw = [];
 let historyPitch = [];
 let historyRoll = [];
-let historyErr = []; // [[time, comp_err, madg_err, maho_err, ekf_err]]
+let historyErrY = []; 
+let historyErrP = []; 
+let historyErrR = []; 
 let startTime = null;
 
 let isTesting = false;
@@ -39,12 +41,15 @@ function initCanvas(id) {
 const cvsYaw   = initCanvas('cvsYaw');
 const cvsPitch = initCanvas('cvsPitch');
 const cvsRoll  = initCanvas('cvsRoll');
-const cvsErr   = initCanvas('cvsYawErr');
+const cvsYawErr   = initCanvas('cvsYawErr');
+const cvsPitchErr = initCanvas('cvsPitchErr');
+const cvsRollErr  = initCanvas('cvsRollErr');
 
 // Handle window resize dynamically
 window.addEventListener('resize', () => {
-  ['cvsYaw', 'cvsPitch', 'cvsRoll', 'cvsYawErr'].forEach(id => {
+  ['cvsYaw', 'cvsPitch', 'cvsRoll', 'cvsYawErr', 'cvsPitchErr', 'cvsRollErr'].forEach(id => {
     const c = document.getElementById(id);
+    if(!c) return;
     const ctx = c.getContext('2d');
     const dpr = window.devicePixelRatio || 1;
     const rect = c.getBoundingClientRect();
@@ -52,11 +57,59 @@ window.addEventListener('resize', () => {
     c.height = rect.height * dpr;
     ctx.scale(dpr, dpr);
     // Find matching dict
-    let tgt = id === 'cvsYaw' ? cvsYaw : id === 'cvsPitch' ? cvsPitch : id === 'cvsRoll' ? cvsRoll : cvsErr;
+    let tgt = id === 'cvsYaw' ? cvsYaw : id === 'cvsPitch' ? cvsPitch : id === 'cvsRoll' ? cvsRoll : 
+              id === 'cvsYawErr' ? cvsYawErr : id === 'cvsPitchErr' ? cvsPitchErr : cvsRollErr;
     tgt.w = rect.width;
     tgt.h = rect.height;
   });
 });
+
+// ── Three.js Spatial Setup ─────────────────────────────────────────────
+let scene, camera, renderer, cubes = {};
+function initThreeJS() {
+  const c = document.getElementById('cvsFusionCube');
+  if(!c) return;
+  scene = new THREE.Scene();
+  // We use orthographic to prevent distortion since it's just meant for comparison
+  const aspect = c.clientWidth / c.clientHeight;
+  const d = 3;
+  camera = new THREE.OrthographicCamera(-d * aspect, d * aspect, d, -d, 1, 1000);
+  camera.position.set(5, 5, 5);
+  camera.lookAt(scene.position);
+
+  renderer = new THREE.WebGLRenderer({ canvas: c, alpha: true, antialias: true });
+  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.setSize(c.clientWidth, c.clientHeight);
+
+  const colors = { phone: 0x00E5FF, chip: 0xFFFFFF, comp: 0xE040FB, madg: 0x69F0AE, maho: 0xFFAB40, ekf: 0xFF5252 };
+  const geo = new THREE.BoxGeometry(3, 0.4, 1.8);
+  
+  // Phone Reference Cube
+  const matP = new THREE.MeshBasicMaterial({ color: colors.phone, transparent: true, opacity: 0.8 });
+  cubes['phone'] = new THREE.Mesh(geo, matP);
+  const edgesP = new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.5, transparent: true }));
+  cubes['phone'].add(edgesP);
+  scene.add(cubes['phone']);
+
+  // Filters (Wireframe Ghost)
+  ['chip', 'comp', 'madg', 'maho', 'ekf'].forEach(k => {
+    const geoFilter = new THREE.EdgesGeometry(geo);
+    const matEdge = new THREE.LineBasicMaterial({ color: colors[k], linewidth: 2, transparent: true, opacity: k==='chip'?0.4:0.9 });
+    cubes[k] = new THREE.LineSegments(geoFilter, matEdge);
+    scene.add(cubes[k]);
+  });
+}
+initThreeJS();
+window.addEventListener('resize', () => {
+    const c = document.getElementById('cvsFusionCube');
+    if(!c || !renderer) return;
+    const aspect = c.clientWidth / c.clientHeight;
+    camera.left = -3 * aspect;
+    camera.right = 3 * aspect;
+    camera.updateProjectionMatrix();
+    renderer.setSize(c.clientWidth, c.clientHeight);
+});
+
 
 // ── Socket Handlers ───────────────────────────────────────────────────
 
@@ -84,33 +137,65 @@ socket.on('fusion_data', (data) => {
     return d;
   };
   
-  // Calculate RMS error across all 3 axes for this instant
-  const rMSErr = (ref, tst) => Math.sqrt((diff(ref.yaw, tst.yaw)**2 + diff(ref.pitch, tst.pitch)**2 + diff(ref.roll, tst.roll)**2) / 3);
-  
-  const ptE = {
-    t: currentT, 
-    comp: rMSErr(data.phone, data.complementary),
-    madg: rMSErr(data.phone, data.madgwick),
-    maho: rMSErr(data.phone, data.mahony),
-    ekf: rMSErr(data.phone, data.ekf)
+  const getErr = (ax) => {
+    return {
+      t: currentT,
+      comp: Math.abs(diff(data.phone[ax], data.complementary[ax])),
+      madg: Math.abs(diff(data.phone[ax], data.madgwick[ax])),
+      maho: Math.abs(diff(data.phone[ax], data.mahony[ax])),
+      ekf:  Math.abs(diff(data.phone[ax], data.ekf[ax]))
+    }
   };
-  historyErr.push(ptE);
+  
+  historyErrY.push(getErr('yaw'));
+  historyErrP.push(getErr('pitch'));
+  historyErrR.push(getErr('roll'));
   
   if (historyYaw.length > MAX_POINTS) {
-    historyYaw.shift(); historyPitch.shift(); historyRoll.shift(); historyErr.shift();
+    historyYaw.shift(); historyPitch.shift(); historyRoll.shift(); 
+    historyErrY.shift(); historyErrP.shift(); historyErrR.shift();
   }
+  
+  const rMSErr = (ref, tst) => Math.sqrt((diff(ref.yaw, tst.yaw)**2 + diff(ref.pitch, tst.pitch)**2 + diff(ref.roll, tst.roll)**2) / 3);
   
   // Test Recording
   if (isTesting) {
+    const ptE = {
+        t: currentT, 
+        comp: rMSErr(data.phone, data.complementary),
+        madg: rMSErr(data.phone, data.madgwick),
+        maho: rMSErr(data.phone, data.mahony),
+        ekf: rMSErr(data.phone, data.ekf)
+    };
     testData.push({y: ptY, p: ptP, r: ptR, e: ptE, t: currentT - testStartTime});
   }
   
-  // Render
+  // Render Checks
   requestAnimationFrame(() => {
     drawChart(cvsYaw, historyYaw, [-180, 180]);
     drawChart(cvsPitch, historyPitch, [-90, 90]);
     drawChart(cvsRoll, historyRoll, [-180, 180]);
-    drawErrChart(cvsErr, historyErr);
+    drawErrChart(cvsYawErr, historyErrY);
+    drawErrChart(cvsPitchErr, historyErrP);
+    drawErrChart(cvsRollErr, historyErrR);
+
+    // Update ThreeJS Rotations
+    if(renderer && scene) {
+      const keys = ['phone', 'chip', 'comp', 'madg', 'maho', 'ekf'];
+      const ref = { phone: data.phone, chip: data.chip, comp: data.complementary, madg: data.madgwick, maho: data.mahony, ekf: data.ekf };
+      keys.forEach(k => {
+          if(!cubes[k]) return;
+          cubes[k].visible = !!visibility[k];
+          if(visibility[k]) {
+             const rY = ref[k].yaw * Math.PI/180;
+             const rP = ref[k].pitch * Math.PI/180;
+             const rR = ref[k].roll * Math.PI/180;
+             // Unity-style mapping
+             cubes[k].rotation.set(-rP, -rY, -rR, 'YXZ');
+          }
+      });
+      renderer.render(scene, camera);
+    }
   });
   
   // Update compute cost text

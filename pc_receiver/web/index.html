@@ -10,7 +10,23 @@
 </head>
 <body>
 
-  <!-- ── Floating Header ──────────────────────────────────────── -->
+  <!-- ── Global Navigation Pill ──────────────────────────────── -->
+  <nav class="global-nav-pill">
+    <a href="/" class="nav-pill-item nav-home active">
+      <svg class="nav-pill-icon" viewBox="0 0 24 24"><path d="M12 3l-10 9h3v8h4v-6h6v6h4v-8h3z"/></svg> <span>Telemetry</span>
+    </a>
+    <a href="/calibration" class="nav-pill-item nav-calib">
+      <svg class="nav-pill-icon" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg> <span>Calibration</span>
+    </a>
+    <a href="/fusion" class="nav-pill-item nav-fusion">
+      <svg class="nav-pill-icon" viewBox="0 0 24 24"><path d="M19.03 7.39l1.42-1.42c-.45-.51-.9-.97-1.41-1.41L17.62 6c-1.55-1.26-3.5-2.02-5.62-2.02-4.97 0-9 4.03-9 9 0 2.12.76 4.07 2.02 5.62l1.42-1.42c-.51-.45-.97-.9-1.41-1.41L6 17.62C4.74 16.07 3.98 14.12 3.98 12c0-4.42 3.58-8 8-8 2.12 0 4.07.76 5.62 2.02l1.42-1.42c-.45-.51-.9-.97-1.41-1.41zM20.02 12c0 4.42-3.58 8-8 8-2.12 0-4.07-.76-5.62-2.02l-1.42 1.42c.51.45.97.9 1.41 1.41L5 19.38c1.55 1.26 3.5 2.02 5.62 2.02 4.97 0 9-4.03 9-9 0-2.12-.76-4.07-2.02-5.62l-1.42 1.42c.51.45.97.9 1.41 1.41l1.41-1.41c1.26 1.55 2.02 3.5 2.02 5.62z"/></svg> <span>Fusion</span>
+    </a>
+    <a href="/analysis" class="nav-pill-item nav-analysis">
+      <svg class="nav-pill-icon" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg> <span>Analytical Core</span>
+    </a>
+  </nav>
+
+  <!-- ── Minimal Header ──────────────────────────────────────── -->
   <header class="header">
     <div class="header-left">
       <div class="logo">
@@ -22,47 +38,8 @@
         </svg>
         <span class="logo-text">Perception Core</span>
       </div>
-      <a href="/calibration" class="action-btn cal-btn">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
-        Calibration
-      </a>
-      <a href="/fusion" class="action-btn" style="background: rgba(224,64,251,0.1); color: #E040FB; border: 1px solid rgba(224,64,251,0.3);">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19.03 7.39l1.42-1.42c-.45-.51-.9-.97-1.41-1.41L17.62 6c-1.55-1.26-3.5-2.02-5.62-2.02-4.97 0-9 4.03-9 9 0 2.12.76 4.07 2.02 5.62l1.42-1.42c-.51-.45-.97-.9-1.41-1.41L6 17.62C4.74 16.07 3.98 14.12 3.98 12c0-4.42 3.58-8 8-8 2.12 0 4.07.76 5.62 2.02l1.42-1.42c-.45-.51-.9-.97-1.41-1.41zM20.02 12c0 4.42-3.58 8-8 8-2.12 0-4.07-.76-5.62-2.02l-1.42 1.42c.51.45.97.9 1.41 1.41L5 19.38c1.55 1.26 3.5 2.02 5.62 2.02 4.97 0 9-4.03 9-9 0-2.12-.76-4.07-2.02-5.62l-1.42 1.42c.51.45.97.9 1.41 1.41l1.41-1.41c1.26 1.55 2.02 3.5 2.02 5.62z"/></svg>
-        Fusion
-      </a>
-      <a href="/analysis" class="action-btn res-btn">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
-        Research
-      </a>
     </div>
-
-    <!-- Mode selector (Floating center) -->
-    <div class="mode-selector" id="modeSelector">
-      <button class="mode-btn active" data-mode="phone" onclick="setMode('phone')">
-        <svg class="mode-icon" viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
-        Phone
-      </button>
-      <button class="mode-btn" data-mode="imu" onclick="setMode('imu')">
-        <svg class="mode-icon" viewBox="0 0 24 24"><path d="M9 4v1.38c-.83.33-1.5 1-1.83 1.83H4v2h2.17c.41 1.17 1.52 2 2.83 2s2.42-.83 2.83-2H20v-2h-8.17c-.33-.83-1-1.5-1.83-1.83V4H9zm0 5.5c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm6 4.5v1.38c-.83.33-1.5 1-1.83 1.83H4v2h9.17c.41 1.17 1.52 2 2.83 2s2.42-.83 2.83-2H20v-2h-1.17c-.33-.83-1-1.5-1.83-1.83V14h-2zm1 5.5c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"/></svg>
-        Hobby IMU
-      </button>
-      <button class="mode-btn" data-mode="both" onclick="setMode('both')">
-        <svg class="mode-icon" viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
-        Compare
-      </button>
-    </div>
-
     <div class="header-right">
-      <button class="btn" id="alignBtn" onclick="startAxisAlignment()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg>
-        Auto Align
-      </button>
-      <button class="btn" id="zeroBtn" onclick="zeroReference()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg>
-        Set Zero
-      </button>
-      <button class="btn" id="resetBtn" onclick="resetReference()" title="Return to absolute values">Reset</button>
-
       <div class="conn-pill phone" id="phoneConn">
         <span class="conn-dot"></span> Phone
       </div>
@@ -72,41 +49,66 @@
     </div>
   </header>
 
-  <!-- ── Sync status bar ──────────────────────────────────── -->
-  <div class="sync-bar glass-inner" id="syncBar">
-    <span class="sync-item">
-      <span class="sync-label">System Offset</span>
-      <span class="sync-offset" id="syncOffset">—</span>
-    </span>
-    <span class="sync-divider">|</span>
-    <span class="sync-item" id="syncModeLabel">
-      <span class="sync-label">Ref Mode</span>
-      <span class="sync-ts" id="syncMode">Absolute</span>
-    </span>
-    <span class="sync-divider">|</span>
-    <span class="sync-item">
-      <span class="sync-label">Rate</span>
-      <span class="sync-ts" id="syncRateOut">50 Hz</span>
-    </span>
-    <span class="sync-divider">|</span>
-    <span class="sync-item">
-      <div class="rate-btns">
-        <button class="rate-btn" onclick="setRate(10)">10</button>
-        <button class="rate-btn" onclick="setRate(25)">25</button>
-        <button class="rate-btn active" onclick="setRate(50)">50</button>
-        <button class="rate-btn" onclick="setRate(100)">100</button>
+  <!-- ── Master Control Panel ──────────────────────────────────────── -->
+  <div class="master-control-panel">
+    <!-- Top actions row -->
+    <div class="mcp-top">
+      <div class="mode-selector" id="modeSelector">
+        <button class="mode-btn active" data-mode="phone" onclick="setMode('phone')">
+          <svg class="mode-icon" viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg> Phone
+        </button>
+        <button class="mode-btn" data-mode="imu" onclick="setMode('imu')">
+          <svg class="mode-icon" viewBox="0 0 24 24"><path d="M9 4v1.38c-.83.33-1.5 1-1.83 1.83H4v2h2.17c.41 1.17 1.52 2 2.83 2s2.42-.83 2.83-2H20v-2h-8.17c-.33-.83-1-1.5-1.83-1.83V4H9zm0 5.5c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm6 4.5v1.38c-.83.33-1.5 1-1.83 1.83H4v2h9.17c.41 1.17 1.52 2 2.83 2s2.42-.83 2.83-2H20v-2h-1.17c-.33-.83-1-1.5-1.83-1.83V14h-2zm1 5.5c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"/></svg> Hobby IMU
+        </button>
+        <button class="mode-btn" data-mode="both" onclick="setMode('both')">
+          <svg class="mode-icon" viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg> Compare
+        </button>
       </div>
-    </span>
-    <span class="sync-divider">|</span>
-    <span class="sync-item">
-      <span class="sync-label">CALIB</span>
-      <div class="calib-status-container" style="display: flex; gap: 4px; align-items: center;">
-        <div class="calib-badge" id="calibSys" style="padding: 2px 8px; font-size: 10px;">SYS: 0</div>
-        <div class="calib-badge" id="calibGyr" style="padding: 2px 8px; font-size: 10px;">GYR: 0</div>
-        <div class="calib-badge" id="calibAcc" style="padding: 2px 8px; font-size: 10px;">ACC: 0</div>
-        <div class="calib-badge" id="calibMag" style="padding: 2px 8px; font-size: 10px;">MAG: 0</div>
+      
+      <div style="display:flex; align-items:center; gap:12px;">
+        <button class="btn" id="alignBtn" onclick="startAxisAlignment()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg> Auto Align
+        </button>
+        <button class="btn" id="zeroBtn" onclick="zeroReference()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Set Zero
+        </button>
+        <button class="btn" id="resetBtn" onclick="resetReference()" title="Return to absolute values">Reset</button>
       </div>
-    </span>
+    </div>
+    
+    <!-- Bottom telemetry row -->
+    <div class="mcp-bottom">
+      <div class="sync-group">
+        <div class="sync-metric">
+          <span class="sync-label">Offset</span>
+          <span class="sync-val" id="syncOffset">—</span>
+        </div>
+        <div class="sync-metric" id="syncModeLabel">
+          <span class="sync-label">Reference</span>
+          <span class="sync-val" id="syncMode">Absolute</span>
+        </div>
+        <div class="sync-metric">
+          <span class="sync-label">Rate (<span id="syncRateOut">50</span>Hz)</span>
+          <div class="rate-btns" style="margin-left: 8px;">
+            <button class="rate-btn" onclick="setRate(10)">10</button>
+            <button class="rate-btn" onclick="setRate(25)">25</button>
+            <button class="rate-btn active" onclick="setRate(50)">50</button>
+            <button class="rate-btn" onclick="setRate(100)">100</button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Calibration Badges -->
+      <div class="sync-metric">
+        <span class="sync-label" style="margin-right: 4px;">CALIB STATUS</span>
+        <div class="calib-status-container" style="display: flex; gap: 4px; align-items: center;">
+          <div class="calib-badge" id="calibSys" style="padding: 2px 8px; font-size: 10px;">SYS: 0</div>
+          <div class="calib-badge" id="calibGyr" style="padding: 2px 8px; font-size: 10px;">GYR: 0</div>
+          <div class="calib-badge" id="calibAcc" style="padding: 2px 8px; font-size: 10px;">ACC: 0</div>
+          <div class="calib-badge" id="calibMag" style="padding: 2px 8px; font-size: 10px;">MAG: 0</div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- ── Main content ────────────────────────────────────────── -->
