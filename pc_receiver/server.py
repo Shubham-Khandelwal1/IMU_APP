@@ -60,6 +60,8 @@ imu_data = {
     "mag":   [0.0, 0.0, 0.0],
     "quat":  [1.0, 0.0, 0.0, 0.0],
     "euler": {"yaw": 0.0, "pitch": 0.0, "roll": 0.0},
+    "raw_euler": {"yaw": 0.0, "pitch": 0.0, "roll": 0.0},
+    "calib": [0, 0, 0, 0],
     "rate_hz": 0,
 }
 
@@ -80,6 +82,12 @@ imu_offset   = {"yaw": 0.0, "pitch": 0.0, "roll": 0.0}
 zeroed       = False
 zero_pc_time = 0.0    # perf_counter() snapshot at the moment Set Zero was clicked
 
+# ── Axis Alignment State ──────────────────────────────────────────────────
+imu_axis_map = {"perm": (0, 1, 2), "sign": (1, 1, 1)}
+aligning_axes = False
+align_start_ts = 0.0
+align_phone_buffer = []  # list of [yaw, pitch, roll]
+align_imu_buffer = []    # list of [raw_yaw, raw_pitch, raw_roll]
 
 def angle_diff(a: float, b: float) -> float:
     """Subtract two angles with wrapping to -180..+180."""
@@ -146,7 +154,9 @@ def parse_imu_line(line: str) -> Optional[dict]:
 
     result = {"euler": {"yaw": 0.0, "pitch": 0.0, "roll": 0.0},
               "accel": [0.0, 0.0, 0.0],
-              "gyro":  [0.0, 0.0, 0.0]}
+              "gyro":  [0.0, 0.0, 0.0],
+              "mag":   [0.0, 0.0, 0.0],
+              "calib": [0, 0, 0, 0]}
 
     try:
         # JSON format
@@ -161,6 +171,36 @@ def parse_imu_line(line: str) -> Optional[dict]:
             if "gyro" in d:
                 result["gyro"] = d["gyro"]
             return result
+
+        # Pipe-delimited or new format: ACC:0.1,4.8,9.3 | MAG:-16.0,33.5,0.6 | GYR:...
+        if "ACC:" in line or "YPR:" in line:
+            parts = [p.strip() for p in line.split("|")]
+            valid = False
+            for part in parts:
+                if ":" in part:
+                    k, v = part.split(":", 1)
+                    k = k.strip().upper()
+                    try:
+                        nums = [float(x) for x in v.split(",")]
+                        if k == "ACC" and len(nums) >= 3:
+                            result["accel"] = nums[:3]
+                            valid = True
+                        elif k == "MAG" and len(nums) >= 3:
+                            result["mag"] = nums[:3]
+                            valid = True
+                        elif k == "GYR" and len(nums) >= 3:
+                            result["gyro"] = nums[:3]
+                            valid = True
+                        elif k == "YPR" and len(nums) >= 3:
+                            result["euler"] = {"yaw": nums[0], "pitch": nums[1], "roll": nums[2]}
+                            valid = True
+                        elif k == "CAL" and len(nums) >= 4:
+                            result["calib"] = [int(x) for x in nums[:4]]
+                            valid = True
+                    except ValueError:
+                        pass
+            if valid:
+                return result
 
         # Key-value: YAW:127.30 PITCH:-12.10 ROLL:3.80  or  R:0 P:-4 Y:300
         kv = re.findall(r'(\w+)\s*[=:]\s*([+-]?\d+\.?\d*)', line, re.IGNORECASE)
@@ -295,13 +335,29 @@ def serial_listener(port: str, baud: int):
 
                     with _lock:
                         pc_ts = time.perf_counter()
+                        
+                        raw_e = parsed.get("euler", {"yaw": 0.0, "pitch": 0.0, "roll": 0.0})
+                        
+                        # Apply axis alignment: simple permutation + sign flip
+                        perm = imu_axis_map["perm"]
+                        sign = imu_axis_map["sign"]
+                        raw_vec = [raw_e["yaw"], raw_e["pitch"], raw_e["roll"]]
+                        mapped_e = {
+                            "yaw":   sign[0] * raw_vec[perm[0]],
+                            "pitch": sign[1] * raw_vec[perm[1]],
+                            "roll":  sign[2] * raw_vec[perm[2]],
+                        }
+
                         imu_data.update({
                             "connected": True,
                             "last_seen": time.time(),
                             "pc_ts":     pc_ts,
                             "accel":  parsed.get("accel", [0, 0, 0]),
                             "gyro":   parsed.get("gyro",  [0, 0, 0]),
-                            "euler":  parsed["euler"],
+                            "mag":    parsed.get("mag",   [0, 0, 0]),
+                            "calib":  parsed.get("calib", [0, 0, 0, 0]),
+                            "euler":  mapped_e,
+                            "raw_euler": raw_e,
                             "rate_hz": round(rate, 1),
                         })
                         if recording:
@@ -322,14 +378,138 @@ def serial_listener(port: str, baud: int):
             time.sleep(3)
 
 
-# ── Broadcaster — pushes to all browser clients at 30 fps ─────────────────
+# ── Broadcaster — pushes to all browser clients ───────────────────────────
+#
+# CORRELATION-BASED AXIS ALIGNMENT — How it works:
+#
+#  During the 10-second calibration window, we collect simultaneous
+#  Euler angle samples from both the Phone (reference) and the raw
+#  IMU (before any mapping).  After 10 seconds:
+#
+#  1. Unwrap angles to remove ±180° yaw discontinuities
+#  2. Remove the mean (DC offset) from each axis — we only care
+#     about how the signals CO-VARY, not their absolute values
+#  3. For every possible (permutation × sign) combination (48 total):
+#       For each phone axis i ∈ {Yaw, Pitch, Roll}:
+#         Pair it with:  sign[i] × IMU_raw[perm[i]]
+#         Compute Pearson correlation coefficient r ∈ [-1, +1]
+#       Sum the 3 per-axis correlations → total_corr
+#  4. The combo with the highest total_corr wins.
+#
+#  A perfect match gives r=+1 per axis, total=3.0.
+#  If axes are swapped (e.g. pitch↔roll), only the correct permutation
+#  will yield r≈+1 on all axes.  If a sign is flipped (e.g. -roll),
+#  only the correct sign will yield positive r instead of negative.
+#
 
 def broadcaster():
+    global aligning_axes, imu_axis_map
+    import itertools
     while True:
+        align_emit = None   # will hold dict to emit OUTSIDE the lock
+
         with _lock:
             rate_hz = target_rate_hz
             now_pc  = time.perf_counter()
 
+            # ── Collect alignment samples ──────────────────────────
+            if aligning_axes:
+                p_e = phone_data.get("euler", {"yaw": 0, "pitch": 0, "roll": 0})
+                r_e = imu_data.get("raw_euler", {"yaw": 0, "pitch": 0, "roll": 0})
+                align_phone_buffer.append([p_e["yaw"], p_e["pitch"], p_e["roll"]])
+                align_imu_buffer.append([r_e["yaw"], r_e["pitch"], r_e["roll"]])
+
+                if now_pc - align_start_ts >= 10.0:
+                    # Time's up — compute the best axis mapping
+                    try:
+                        n_samples = len(align_phone_buffer)
+                        print(f"[Align] Collected {n_samples} samples. Computing...")
+
+                        P = np.array(align_phone_buffer, dtype=float)
+                        I = np.array(align_imu_buffer, dtype=float)
+
+                        if n_samples > 20:
+                            # Step 1: Unwrap to remove ±180° discontinuities
+                            for col in range(3):
+                                P[:, col] = np.unwrap(P[:, col] * np.pi / 180) * 180 / np.pi
+                                I[:, col] = np.unwrap(I[:, col] * np.pi / 180) * 180 / np.pi
+
+                            # Step 2: Remove DC offset (mean)
+                            P -= np.mean(P, axis=0)
+                            I -= np.mean(I, axis=0)
+
+                            # Diagnostics — how much motion was there?
+                            p_std = np.std(P, axis=0)
+                            i_std = np.std(I, axis=0)
+                            labels = ["Yaw", "Pitch", "Roll"]
+                            print(f"[Align] Phone StdDev: {labels[0]}={p_std[0]:.2f}  {labels[1]}={p_std[1]:.2f}  {labels[2]}={p_std[2]:.2f}")
+                            print(f"[Align] IMU   StdDev: {labels[0]}={i_std[0]:.2f}  {labels[1]}={i_std[1]:.2f}  {labels[2]}={i_std[2]:.2f}")
+
+                            # Step 3: Brute-force all 48 combos
+                            perms = list(itertools.permutations([0, 1, 2]))
+                            signs_list = list(itertools.product([1, -1], repeat=3))
+
+                            best_corr = -float('inf')
+                            best_perm = (0, 1, 2)
+                            best_sign = (1, 1, 1)
+
+                            for perm in perms:
+                                for sgn in signs_list:
+                                    total_corr = 0.0
+                                    for axis in range(3):
+                                        phone_axis = P[:, axis]
+                                        imu_axis   = sgn[axis] * I[:, perm[axis]]
+                                        sp = np.std(phone_axis)
+                                        si = np.std(imu_axis)
+                                        if sp > 0.5 and si > 0.5:
+                                            c = np.corrcoef(phone_axis, imu_axis)[0, 1]
+                                            if not np.isnan(c):
+                                                total_corr += c
+
+                                    if total_corr > best_corr:
+                                        best_corr = total_corr
+                                        best_perm = perm
+                                        best_sign = sgn
+
+                            # Build detail strings
+                            detail = []
+                            for axis in range(3):
+                                src = labels[best_perm[axis]]
+                                sgn_str = "+" if best_sign[axis] > 0 else "-"
+                                sp2 = np.std(P[:, axis])
+                                si2 = np.std(best_sign[axis] * I[:, best_perm[axis]])
+                                if sp2 > 0.5 and si2 > 0.5:
+                                    c = np.corrcoef(P[:, axis], best_sign[axis] * I[:, best_perm[axis]])[0, 1]
+                                else:
+                                    c = 0.0
+                                detail.append(f"Phone {labels[axis]} = {sgn_str}IMU {src} (r={c:.3f})")
+
+                            imu_axis_map = {"perm": best_perm, "sign": best_sign}
+
+                            print(f"[Align] DONE! Best mapping (total r = {best_corr:.3f}):")
+                            for d in detail:
+                                print(f"[Align]   {d}")
+
+                            align_emit = {
+                                "success": True,
+                                "perm": list(best_perm),
+                                "sign": list(best_sign),
+                                "corr": round(best_corr, 3),
+                                "detail": detail,
+                            }
+                        else:
+                            print(f"[Align] Failed: only {n_samples} samples (need >20)")
+                            align_emit = {"success": False}
+
+                    except Exception as e:
+                        print(f"[Align] ERROR during computation: {e}")
+                        import traceback
+                        traceback.print_exc()
+                        align_emit = {"success": False}
+
+                    aligning_axes = False
+
+            # ── Build regular payload ──────────────────────────────
             p_rel_ts = round(phone_data["pc_ts"] - zero_pc_time, 3) if zeroed else round(phone_data["pc_ts"], 3)
             m_rel_ts = round(imu_data["pc_ts"]   - zero_pc_time, 3) if zeroed else round(imu_data["pc_ts"],   3)
             sync_offset_ms = round((phone_data["pc_ts"] - imu_data["pc_ts"]) * 1000, 1)
@@ -352,6 +532,10 @@ def broadcaster():
                 "target_rate_hz": rate_hz,
                 "ts":             time.time(),
             }
+
+        # ── Emit OUTSIDE the lock (prevents deadlock) ──────────
+        if align_emit is not None:
+            socketio.emit("axis_align_complete", align_emit)
         socketio.emit("sensor_data", payload)
         socketio.sleep(1.0 / max(rate_hz, 1))
 
@@ -404,6 +588,17 @@ def on_set_rate(hz):
         target_rate_hz = hz
     print(f"[Rate] Output rate set to {hz} Hz")
     socketio.emit("rate_ack", {"target_rate_hz": hz})
+
+@socketio.on("start_axis_align")
+def on_start_axis_align():
+    global aligning_axes, align_start_ts
+    with _lock:
+        aligning_axes = True
+        align_start_ts = time.perf_counter()
+        align_phone_buffer.clear()
+        align_imu_buffer.clear()
+    print("[Align] Started 10-second axis alignment calibration")
+    socketio.emit("axis_align_ack", {"duration_s": 10})
 
 # ── Analysis recording events ──────────────────────────────────────────────
 

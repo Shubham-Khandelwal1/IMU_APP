@@ -49,6 +49,10 @@
     </div>
 
     <div class="header-right">
+      <button class="btn" id="alignBtn" onclick="startAxisAlignment()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg>
+        Auto Align
+      </button>
       <button class="btn" id="zeroBtn" onclick="zeroReference()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg>
         Set Zero
@@ -87,6 +91,16 @@
         <button class="rate-btn" onclick="setRate(25)">25</button>
         <button class="rate-btn active" onclick="setRate(50)">50</button>
         <button class="rate-btn" onclick="setRate(100)">100</button>
+      </div>
+    </span>
+    <span class="sync-divider">|</span>
+    <span class="sync-item">
+      <span class="sync-label">CALIB</span>
+      <div class="calib-status-container" style="display: flex; gap: 4px; align-items: center;">
+        <div class="calib-badge" id="calibSys" style="padding: 2px 8px; font-size: 10px;">SYS: 0</div>
+        <div class="calib-badge" id="calibGyr" style="padding: 2px 8px; font-size: 10px;">GYR: 0</div>
+        <div class="calib-badge" id="calibAcc" style="padding: 2px 8px; font-size: 10px;">ACC: 0</div>
+        <div class="calib-badge" id="calibMag" style="padding: 2px 8px; font-size: 10px;">MAG: 0</div>
       </div>
     </span>
   </div>
@@ -183,16 +197,21 @@
         </div>
       </div>
 
-      <div class="charts-grid charts-grid-slim">
+      <div class="charts-grid">
+        <div class="chart-card glass-inner">
+          <div class="chart-title">Accelerometer <span class="chart-unit">m/s²</span></div>
+          <canvas id="chartImuAccel" class="line-chart"></canvas>
+          <div class="xyz-row" id="xyzImuAccel"></div>
+        </div>
         <div class="chart-card glass-inner">
           <div class="chart-title">Gyroscope <span class="chart-unit">rad/s</span></div>
           <canvas id="chartImuGyro" class="line-chart"></canvas>
           <div class="xyz-row" id="xyzImuGyro"></div>
         </div>
         <div class="chart-card glass-inner">
-          <div class="chart-title">Accelerometer <span class="chart-unit">m/s²</span></div>
-          <canvas id="chartImuAccel" class="line-chart"></canvas>
-          <div class="xyz-row" id="xyzImuAccel"></div>
+          <div class="chart-title">Magnetometer <span class="chart-unit">μT</span></div>
+          <canvas id="chartImuMag" class="line-chart"></canvas>
+          <div class="xyz-row" id="xyzImuMag"></div>
         </div>
       </div>
 
@@ -287,6 +306,13 @@
       </div>
 
     </section>
+
+    <!-- ═══ MODALS ═══════════════════════════════════════════════ -->
+    <div id="alignModal" class="align-modal glass" style="display: none;">
+      <h3 class="align-title">Axis Alignment Calibration</h3>
+      <p class="align-desc">Hold Phone and IMU firmly together. Wiggle randomly in all directions (Pitch, Roll, Yaw) to correlate and sync axes.</p>
+      <div class="align-timer mono" id="alignTimer">10</div>
+    </div>
 
   </main>
 

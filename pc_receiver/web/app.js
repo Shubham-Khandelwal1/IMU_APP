@@ -22,6 +22,54 @@ function resetReference() {
   btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg> Set Zero`;
 }
 
+// ── Auto Align ─────────────────────────────────────────────────
+let alignInterval = null;
+
+function startAxisAlignment() {
+  socket.emit('start_axis_align');
+}
+
+socket.on('axis_align_ack', data => {
+  let timeLeft = data.duration_s;
+  const modal = document.getElementById('alignModal');
+  const timerEl = document.getElementById('alignTimer');
+  const btn = document.getElementById('alignBtn');
+  
+  if(modal && timerEl && btn) {
+    modal.style.display = 'flex';
+    btn.classList.add('active');
+    btn.textContent = 'Aligning...';
+    
+    timerEl.textContent = timeLeft;
+    alignInterval = setInterval(() => {
+      timeLeft--;
+      if(timeLeft >= 0) {
+        timerEl.textContent = timeLeft;
+      }
+    }, 1000);
+  }
+});
+
+socket.on('axis_align_complete', data => {
+  clearInterval(alignInterval);
+  const modal = document.getElementById('alignModal');
+  const btn = document.getElementById('alignBtn');
+  
+  if(modal && btn) {
+    modal.style.display = 'none';
+    btn.classList.remove('active');
+    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg> Auto Align`;
+  }
+
+  if(data.success) {
+    const msg = "✓ Axis Alignment Complete!\n\nCorrelation: " + data.corr + "/3.0\n\n" + data.detail.join("\n");
+    alert(msg);
+    zeroReference(); // Auto zero after finding alignment so cubes jump into perfect sync
+  } else {
+    alert("Alignment failed: Ensure you are wiggling the sensors sufficiently in all three axes (Yaw, Pitch, AND Roll).");
+  }
+});
+
 function setRate(hz) {
   socket.emit('set_rate', hz);
 }
@@ -236,6 +284,7 @@ const rollingCharts = {
   phoneMag:    new RollingChart('chartPhoneMag',    XYZ),
   imuAccel:    new RollingChart('chartImuAccel',    XYZ),
   imuGyro:     new RollingChart('chartImuGyro',     XYZ),
+  imuMag:      new RollingChart('chartImuMag',      XYZ),
   overlayYaw:  new RollingChart('chartOverlayYaw',  [C, I]),
   deltaYaw:    new RollingChart('chartDeltaYaw',    [G]),
   deltaPitch:  new RollingChart('chartDeltaPitch',  [G]),
@@ -320,6 +369,30 @@ socket.on('sensor_data', data => {
   phoneConn.classList.toggle('active', p.connected);
   imuConn.classList.toggle('active',   m.connected);
 
+  // Update calibration badges globally regardless of mode
+  const cal = m.calib || [0, 0, 0, 0];
+  const cSys = document.getElementById('calibSys');
+  const cGyr = document.getElementById('calibGyr');
+  const cAcc = document.getElementById('calibAcc');
+  const cMag = document.getElementById('calibMag');
+  
+  if (cSys) {
+    cSys.textContent = 'SYS: ' + cal[0];
+    cSys.className = 'calib-badge calib-' + cal[0];
+  }
+  if (cGyr) {
+    cGyr.textContent = 'GYR: ' + cal[1];
+    cGyr.className = 'calib-badge calib-' + cal[1];
+  }
+  if (cAcc) {
+    cAcc.textContent = 'ACC: ' + cal[2];
+    cAcc.className = 'calib-badge calib-' + cal[2];
+  }
+  if (cMag) {
+    cMag.textContent = 'MAG: ' + cal[3];
+    cMag.className = 'calib-badge calib-' + cal[3];
+  }
+
   // ── Phone panel ────────────────────────────────────────────
   if (currentMode === 'phone' || currentMode === 'both') {
     const e = p.euler;
@@ -367,14 +440,18 @@ socket.on('sensor_data', data => {
 
     const [ax,ay,az] = m.accel;
     const [gx,gy,gz] = m.gyro;
+    const [mx,my,mz] = m.mag || [0, 0, 0];
 
     rollingCharts.imuAccel.push(ax, ay, az);
     rollingCharts.imuGyro .push(gx, gy, gz);
+    if(rollingCharts.imuMag) rollingCharts.imuMag.push(mx, my, mz);
 
     const xyzAEl = document.getElementById('xyzImuAccel');
     if (xyzAEl) xyzAEl.innerHTML = xyzHtml(ax,ay,az);
     const xyzGEl = document.getElementById('xyzImuGyro');
     if (xyzGEl) xyzGEl.innerHTML = xyzHtml(gx,gy,gz);
+    const xyzMEl = document.getElementById('xyzImuMag');
+    if (xyzMEl) xyzMEl.innerHTML = xyzHtml(mx,my,mz);
 
     cubes.imu?.update(e.yaw, e.pitch, e.roll);
   }
