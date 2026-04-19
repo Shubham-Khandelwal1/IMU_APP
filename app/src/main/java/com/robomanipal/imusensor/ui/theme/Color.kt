@@ -3,14 +3,20 @@ package com.robomanipal.imusensor.ui.theme
 import androidx.compose.ui.graphics.Color
 
 // ── Background layers ──────────────────────────────────────────────
-val DarkBackground     = Color(0xFF0A0A12)
-val DarkSurface        = Color(0xFF12121C)
-val DarkSurfaceVariant = Color(0xFF1A1A2E)
+val DarkBackground     = Color(0xFF0B0B14)
+val DarkSurface        = Color(0xFF13131E)
+val DarkSurfaceVariant = Color(0xFF1B1B30)
 
 // ── Glass effects ──────────────────────────────────────────────────
 val GlassWhite         = Color(0x14FFFFFF)   // 8 %
 val GlassBorder        = Color(0x1FFFFFFF)   // 12 %
 val GlassHighlight     = Color(0x0DFFFFFF)   // 5 %
+
+// ── Elevation / shadow tokens (no glow — soft ambient only) ───────
+val CardShadowAmbient  = Color(0x40000000)   // 25 % black
+val CardShadowSpot     = Color(0x26000000)   // 15 % black
+val CardHighlightTop   = Color(0x12FFFFFF)   // 7 % white — inner top edge light
+val CardHighlightBot   = Color(0x08000000)   // 3 % black — inner bottom edge weight
 
 // ── Primary gradient endpoints ─────────────────────────────────────
 val CyanPrimary        = Color(0xFF00D4FF)

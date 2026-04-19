@@ -11,8 +11,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -26,7 +24,7 @@ import com.robomanipal.imusensor.viewmodel.SensorViewModel
 
 /**
  * Premium Orientation screen: 3D cube + YPR gauges + data cards.
- * Full entrance animation cascade with staggered fade+slide.
+ * Spring-based staggered entrance — each section slides up and fades in.
  */
 @Composable
 fun OrientationScreen(
@@ -38,15 +36,25 @@ fun OrientationScreen(
     // ── Staggered entrance state ───────────────────────────────────────
     var step by remember { mutableIntStateOf(0) }
     LaunchedEffect(Unit) {
-        kotlinx.coroutines.delay(80);  step = 1
-        kotlinx.coroutines.delay(140); step = 2
-        kotlinx.coroutines.delay(120); step = 3
-        kotlinx.coroutines.delay(120); step = 4
-        kotlinx.coroutines.delay(100); step = 5
+        kotlinx.coroutines.delay(60);  step = 1
+        kotlinx.coroutines.delay(120); step = 2
+        kotlinx.coroutines.delay(100); step = 3
+        kotlinx.coroutines.delay(100); step = 4
+        kotlinx.coroutines.delay(90);  step = 5
     }
 
-    fun stepAlpha(s: Int) = if (step >= s) 1f else 0f
-    fun stepOffset(s: Int) = if (step >= s) 0f else 40f
+    // Spring-based slide + fade — hoisted to composable scope
+    val a1 by animateFloatAsState(if (step >= 1) 1f else 0f, tween(450), label = "a1")
+    val o1 by animateFloatAsState(if (step >= 1) 0f else 45f, spring(dampingRatio = 0.65f, stiffness = 180f), label = "o1")
+    val a2 by animateFloatAsState(if (step >= 2) 1f else 0f, tween(450), label = "a2")
+    val o2 by animateFloatAsState(if (step >= 2) 0f else 45f, spring(dampingRatio = 0.65f, stiffness = 180f), label = "o2")
+    val s2 by animateFloatAsState(if (step >= 2) 1f else 0.92f, spring(dampingRatio = 0.6f, stiffness = 200f), label = "s2")
+    val a3 by animateFloatAsState(if (step >= 3) 1f else 0f, tween(450), label = "a3")
+    val o3 by animateFloatAsState(if (step >= 3) 0f else 45f, spring(dampingRatio = 0.65f, stiffness = 180f), label = "o3")
+    val a4 by animateFloatAsState(if (step >= 4) 1f else 0f, tween(450), label = "a4")
+    val o4 by animateFloatAsState(if (step >= 4) 0f else 45f, spring(dampingRatio = 0.65f, stiffness = 180f), label = "o4")
+    val a5 by animateFloatAsState(if (step >= 5) 1f else 0f, tween(450), label = "a5")
+    val o5 by animateFloatAsState(if (step >= 5) 0f else 45f, spring(dampingRatio = 0.65f, stiffness = 180f), label = "o5")
 
     Column(
         modifier = modifier
@@ -68,49 +76,35 @@ fun OrientationScreen(
         Spacer(Modifier.height(16.dp))
 
         // ── Header ─────────────────────────────────────────────────────
-        val headAlpha by animateFloatAsState(stepAlpha(1), tween(400), label = "h")
-        val headOff   by animateFloatAsState(stepOffset(1), tween(400, easing = EaseOutCubic), label = "ho")
         Text(
             text = "3D Orientation",
             style = MaterialTheme.typography.headlineLarge,
             fontWeight = FontWeight.Bold,
             color = Color.White,
-            modifier = Modifier
-                .graphicsLayer { translationY = headOff; alpha = headAlpha },
+            modifier = Modifier.graphicsLayer {
+                alpha = a1
+                translationY = o1
+            },
         )
 
         Spacer(Modifier.height(20.dp))
 
         // ── 3D Cube ────────────────────────────────────────────────────
-        val cubeAlpha by animateFloatAsState(stepAlpha(2), tween(500), label = "ca")
-        val cubeScale by animateFloatAsState(
-            if (step >= 2) 1f else 0.88f,
-            spring(dampingRatio = 0.65f, stiffness = 180f),
-            label = "cs",
-        )
         GlassCard(
             modifier = Modifier
                 .fillMaxWidth()
-                .graphicsLayer { alpha = cubeAlpha; scaleX = cubeScale; scaleY = cubeScale },
+                .graphicsLayer {
+                    alpha = a2
+                    translationY = o2
+                    scaleX = s2
+                    scaleY = s2
+                },
             accentColor = OrientColor,
         ) {
             Box(
                 modifier = Modifier.fillMaxWidth(),
                 contentAlignment = Alignment.Center,
             ) {
-                // Subtle background glow behind cube
-                Box(
-                    modifier = Modifier
-                        .size(180.dp)
-                        .background(
-                            Brush.radialGradient(
-                                colors = listOf(
-                                    OrientColor.copy(alpha = 0.07f),
-                                    Color.Transparent,
-                                )
-                            )
-                        )
-                )
                 OrientationCube(
                     yawDeg   = orient.yaw,
                     pitchDeg = orient.pitch,
@@ -126,12 +120,13 @@ fun OrientationScreen(
         Spacer(Modifier.height(24.dp))
 
         // ── YPR Gauges ─────────────────────────────────────────────────
-        val gaugeAlpha by animateFloatAsState(stepAlpha(3), tween(500), label = "ga")
-        val gaugeOff  by animateFloatAsState(stepOffset(3), tween(450, easing = EaseOutCubic), label = "go")
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .graphicsLayer { alpha = gaugeAlpha; translationY = gaugeOff },
+                .graphicsLayer {
+                    alpha = a3
+                    translationY = o3
+                },
         ) {
             GlassCard(
                 modifier = Modifier.fillMaxWidth(),
@@ -149,12 +144,13 @@ fun OrientationScreen(
         Spacer(Modifier.height(16.dp))
 
         // ── Euler Angles numeric readout ───────────────────────────────
-        val eulerAlpha by animateFloatAsState(stepAlpha(4), tween(500), label = "ea")
-        val eulerOff  by animateFloatAsState(stepOffset(4), tween(450, easing = EaseOutCubic), label = "eo")
         GlassCard(
             modifier = Modifier
                 .fillMaxWidth()
-                .graphicsLayer { alpha = eulerAlpha; translationY = eulerOff },
+                .graphicsLayer {
+                    alpha = a4
+                    translationY = o4
+                },
             accentColor = OrientColor,
         ) {
             Row(
@@ -184,12 +180,13 @@ fun OrientationScreen(
         Spacer(Modifier.height(16.dp))
 
         // ── Quaternion ─────────────────────────────────────────────────
-        val quatAlpha by animateFloatAsState(stepAlpha(5), tween(500), label = "qta")
-        val quatOff  by animateFloatAsState(stepOffset(5), tween(450, easing = EaseOutCubic), label = "qto")
         GlassCard(
             modifier = Modifier
                 .fillMaxWidth()
-                .graphicsLayer { alpha = quatAlpha; translationY = quatOff },
+                .graphicsLayer {
+                    alpha = a5
+                    translationY = o5
+                },
             accentColor = OrientColor.copy(alpha = 0.4f),
         ) {
             Text(
@@ -261,7 +258,7 @@ fun OrientationScreen(
 private fun EulerRow(label: String, value: Float, color: Color) {
     val animated by animateFloatAsState(
         targetValue  = value,
-        animationSpec = spring(dampingRatio = 0.75f, stiffness = 120f),
+        animationSpec = spring(dampingRatio = 0.7f, stiffness = 120f),
         label        = "euler$label",
     )
     Row(

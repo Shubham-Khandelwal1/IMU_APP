@@ -2,57 +2,29 @@ package com.robomanipal.imusensor.viewmodel
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.viewModelScope
-import com.robomanipal.imusensor.IMUApplication
-import com.robomanipal.imusensor.sensor.OrientationData
-import com.robomanipal.imusensor.sensor.SensorReading
 import com.robomanipal.imusensor.streaming.StreamConfig
 import com.robomanipal.imusensor.streaming.StreamFormat
-import com.robomanipal.imusensor.streaming.UDPStreamer
-import kotlinx.coroutines.*
+import com.robomanipal.imusensor.streaming.StreamingService
 import kotlinx.coroutines.flow.*
 
 /**
- * Manages the UDP streaming lifecycle.
- * Reads latest sensor values from the shared [SensorRepository] and pushes
- * them through [UDPStreamer] at the configured rate.
+ * Manages the UDP streaming lifecycle via [StreamingService].
+ *
+ * Instead of running a coroutine inside the ViewModel (which dies when
+ * the screen turns off), this delegates to a Foreground Service that
+ * keeps streaming alive independently of the Activity lifecycle.
+ *
+ * State is observed from the service's companion StateFlows.
  */
 class StreamViewModel(application: Application) : AndroidViewModel(application) {
-
-    private val repo = (application as IMUApplication).sensorRepository
-    private val streamer = UDPStreamer()
 
     private val _config = MutableStateFlow(StreamConfig())
     val config: StateFlow<StreamConfig> = _config.asStateFlow()
 
-    private val _packetsSent = MutableStateFlow(0L)
-    val packetsSent: StateFlow<Long> = _packetsSent.asStateFlow()
-
-    private val _errors = MutableStateFlow(0L)
-    val errors: StateFlow<Long> = _errors.asStateFlow()
-
-    private val _isStreaming = MutableStateFlow(false)
-    val isStreaming: StateFlow<Boolean> = _isStreaming.asStateFlow()
-
-    private var streamJob: Job? = null
-
-    // Latest sensor values (collected separately for streaming)
-    private var latestAccel: SensorReading? = null
-    private var latestGyro: SensorReading? = null
-    private var latestMag: SensorReading? = null
-    private var latestOrient: OrientationData? = null
-
-    init {
-        // Continuously track latest values even when not streaming
-        viewModelScope.launch { repo.accelerometer.collect { latestAccel = it } }
-        viewModelScope.launch { repo.gyroscope.collect { latestGyro = it } }
-        viewModelScope.launch { repo.magnetometer.collect { latestMag = it } }
-        viewModelScope.launch { repo.orientation.collect { latestOrient = it } }
-    }
-
-    fun updateConfig(config: StreamConfig) {
-        _config.value = config
-    }
+    /** Observed directly from the service singleton. */
+    val isStreaming: StateFlow<Boolean> = StreamingService.isRunning
+    val packetsSent: StateFlow<Long>   = StreamingService.packetsSent
+    val errors: StateFlow<Long>        = StreamingService.errors
 
     fun updateIp(ip: String) {
         _config.value = _config.value.copy(targetIp = ip)
@@ -71,39 +43,16 @@ class StreamViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun toggleStreaming() {
-        if (_isStreaming.value) stopStreaming() else startStreaming()
-    }
-
-    private fun startStreaming() {
-        val cfg = _config.value
-        streamJob = viewModelScope.launch(Dispatchers.IO) {
-            try {
-                streamer.open(cfg)
-                _isStreaming.value = true
-                val intervalMs = 1000L / cfg.sampleRateHz
-                while (isActive) {
-                    streamer.send(latestAccel, latestGyro, latestMag, latestOrient)
-                    _packetsSent.value = streamer.packetsSent
-                    _errors.value = streamer.errors
-                    delay(intervalMs)
-                }
-            } catch (_: Exception) {
-                _errors.value++
-            } finally {
-                streamer.close()
-                _isStreaming.value = false
-            }
+        val context = getApplication<Application>()
+        if (isStreaming.value) {
+            StreamingService.stop(context)
+        } else {
+            StreamingService.start(context, _config.value)
         }
     }
 
-    private fun stopStreaming() {
-        streamJob?.cancel()
-        streamJob = null
-        streamer.close()
-        _isStreaming.value = false
-    }
-
     override fun onCleared() {
-        stopStreaming()
+        // Don't stop the service — it should keep streaming even if the
+        // user navigates away. They stop via button or notification.
     }
 }

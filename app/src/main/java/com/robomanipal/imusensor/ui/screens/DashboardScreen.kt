@@ -1,7 +1,7 @@
 package com.robomanipal.imusensor.ui.screens
 
 import androidx.compose.animation.*
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -11,8 +11,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -38,9 +39,18 @@ fun DashboardScreen(
     val gyroBuf  by vm.gyroBuffer.collectAsStateWithLifecycle()
     val magBuf   by vm.magBuffer.collectAsStateWithLifecycle()
 
-    // Staggered entrance animation
-    var visible by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { visible = true }
+    val view = LocalView.current
+
+    // ── Staggered entrance ─────────────────────────────────────────
+    var step by remember { mutableIntStateOf(0) }
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(60);  step = 1   // header
+        kotlinx.coroutines.delay(100); step = 2   // YPR banner
+        kotlinx.coroutines.delay(90);  step = 3   // card 0
+        kotlinx.coroutines.delay(80);  step = 4   // card 1
+        kotlinx.coroutines.delay(70);  step = 5   // card 2
+        kotlinx.coroutines.delay(70);  step = 6   // orientation card
+    }
 
     Column(
         modifier = modifier
@@ -53,9 +63,18 @@ fun DashboardScreen(
         Spacer(Modifier.height(16.dp))
 
         // ── Header ─────────────────────────────────────────────────────
+        val headAlpha by animateFloatAsState(
+            if (step >= 1) 1f else 0f, tween(400), label = "hA"
+        )
+        val headOff by animateFloatAsState(
+            if (step >= 1) 0f else 30f,
+            spring(dampingRatio = 0.7f, stiffness = 200f), label = "hO"
+        )
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .graphicsLayer { alpha = headAlpha; translationY = headOff },
         ) {
             Text(
                 text = "IMU Sensor",
@@ -73,9 +92,17 @@ fun DashboardScreen(
         Spacer(Modifier.height(20.dp))
 
         // ── YPR Banner ─────────────────────────────────────────────────
-        AnimatedVisibility(
-            visible = visible,
-            enter = fadeIn(tween(500)) + expandVertically(tween(500)),
+        val bannerAlpha by animateFloatAsState(
+            if (step >= 2) 1f else 0f, tween(400), label = "bA"
+        )
+        val bannerOff by animateFloatAsState(
+            if (step >= 2) 0f else 40f,
+            spring(dampingRatio = 0.65f, stiffness = 180f), label = "bO"
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .graphicsLayer { alpha = bannerAlpha; translationY = bannerOff },
         ) {
             GlassCard(
                 modifier = Modifier.fillMaxWidth(),
@@ -94,7 +121,7 @@ fun DashboardScreen(
 
         Spacer(Modifier.height(16.dp))
 
-        // ── 2×2 Sensor cards ───────────────────────────────────────────
+        // ── Sensor cards (slide up from below) ─────────────────────────
         val cards = listOf(
             CardData("Accelerometer", "accel", AccelColor, accel, accelBuf, "m/s²"),
             CardData("Gyroscope", "gyro", GyroColor, gyro, gyroBuf, "rad/s"),
@@ -102,26 +129,50 @@ fun DashboardScreen(
         )
 
         cards.forEachIndexed { i, data ->
-            AnimatedVisibility(
-                visible = visible,
-                enter = fadeIn(tween(500, delayMillis = 100 + i * 80)) +
-                        scaleIn(initialScale = 0.92f, animationSpec = tween(500, delayMillis = 100 + i * 80)),
+            val cardStep = i + 3
+            val cAlpha by animateFloatAsState(
+                if (step >= cardStep) 1f else 0f, tween(450), label = "cA$i"
+            )
+            val cOff by animateFloatAsState(
+                if (step >= cardStep) 0f else 50f,
+                spring(dampingRatio = 0.6f, stiffness = 160f), label = "cO$i"
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .graphicsLayer { alpha = cAlpha; translationY = cOff },
             ) {
-                SensorCardItem(data = data, onClick = { onSensorTap(data.route) })
+                SensorCardItem(
+                    data = data,
+                    onClick = {
+                        HapticUtils.tick(view)
+                        onSensorTap(data.route)
+                    },
+                )
             }
             Spacer(Modifier.height(12.dp))
         }
 
-        // Orientation card
-        AnimatedVisibility(
-            visible = visible,
-            enter = fadeIn(tween(500, delayMillis = 380)) +
-                    scaleIn(initialScale = 0.92f, animationSpec = tween(500, delayMillis = 380)),
+        // ── Orientation card ───────────────────────────────────────────
+        val oAlpha by animateFloatAsState(
+            if (step >= 6) 1f else 0f, tween(450), label = "oA"
+        )
+        val oOff by animateFloatAsState(
+            if (step >= 6) 0f else 50f,
+            spring(dampingRatio = 0.6f, stiffness = 160f), label = "oO"
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .graphicsLayer { alpha = oAlpha; translationY = oOff },
         ) {
             GlassCard(
                 modifier = Modifier.fillMaxWidth(),
                 accentColor = OrientColor,
-                onClick = { onSensorTap("orientation") },
+                onClick = {
+                    HapticUtils.tick(view)
+                    onSensorTap("orientation")
+                },
             ) {
                 Text(
                     text = "Orientation",
@@ -159,6 +210,11 @@ fun DashboardScreen(
 
 @Composable
 private fun YPRValueChip(label: String, value: Float, color: Color) {
+    val animated by animateFloatAsState(
+        targetValue = value,
+        animationSpec = spring(dampingRatio = 0.75f, stiffness = 160f),
+        label = "yprChip",
+    )
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             text = label,
@@ -167,7 +223,7 @@ private fun YPRValueChip(label: String, value: Float, color: Color) {
             color = color.copy(alpha = 0.7f),
         )
         Text(
-            text = "%+.1f°".format(value),
+            text = "%+.1f°".format(animated),
             fontFamily = SensorValueFont,
             fontSize = 18.sp,
             fontWeight = FontWeight.Bold,

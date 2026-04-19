@@ -1,9 +1,9 @@
 -- Merging decision tree log ---
 manifest
-ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:2:1-32:12
-INJECTED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:2:1-32:12
-INJECTED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:2:1-32:12
-INJECTED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:2:1-32:12
+ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:2:1-43:12
+INJECTED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:2:1-43:12
+INJECTED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:2:1-43:12
+INJECTED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:2:1-43:12
 MERGED from [androidx.compose.material3:material3-android:1.3.1] C:\Users\shubh\.gradle\caches\8.9\transforms\b1d196674fcf86ebe35485f15500c334\transformed\material3-release\AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.navigation:navigation-common:2.8.5] C:\Users\shubh\.gradle\caches\8.9\transforms\bc91893a9f1958280adbcfdd25c92fd9\transformed\navigation-common-2.8.5\AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.navigation:navigation-runtime:2.8.5] C:\Users\shubh\.gradle\caches\8.9\transforms\4ed8303874a629101fc7e72cd25cf3a4\transformed\navigation-runtime-2.8.5\AndroidManifest.xml:17:1-22:12
@@ -77,27 +77,43 @@ uses-permission#android.permission.ACCESS_NETWORK_STATE
 ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:7:5-79
 	android:name
 		ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:7:22-76
+uses-permission#android.permission.CHANGE_NETWORK_STATE
+ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:8:5-79
+	android:name
+		ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:8:22-76
+uses-permission#android.permission.FOREGROUND_SERVICE
+ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:11:5-77
+	android:name
+		ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:11:22-74
+uses-permission#android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE
+ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:12:5-94
+	android:name
+		ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:12:22-91
+uses-permission#android.permission.POST_NOTIFICATIONS
+ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:13:5-77
+	android:name
+		ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:13:22-74
 uses-feature#android.hardware.sensor.accelerometer
-ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:10:5-99
+ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:16:5-99
 	android:required
-		ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:10:72-96
+		ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:16:72-96
 	android:name
-		ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:10:19-71
+		ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:16:19-71
 uses-feature#android.hardware.sensor.gyroscope
-ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:11:5-95
+ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:17:5-95
 	android:required
-		ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:11:68-92
+		ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:17:68-92
 	android:name
-		ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:11:19-67
+		ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:17:19-67
 uses-feature#android.hardware.sensor.compass
-ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:12:5-93
+ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:18:5-93
 	android:required
-		ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:12:66-90
+		ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:18:66-90
 	android:name
-		ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:12:19-65
+		ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:18:19-65
 application
-ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:14:5-31:19
-INJECTED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:14:5-31:19
+ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:20:5-42:19
+INJECTED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:20:5-42:19
 MERGED from [androidx.compose.ui:ui-test-manifest:1.7.6] C:\Users\shubh\.gradle\caches\8.9\transforms\354494834154c94a9416df003ff1a94e\transformed\ui-test-manifest-1.7.6\AndroidManifest.xml:22:5-26:19
 MERGED from [androidx.compose.ui:ui-test-manifest:1.7.6] C:\Users\shubh\.gradle\caches\8.9\transforms\354494834154c94a9416df003ff1a94e\transformed\ui-test-manifest-1.7.6\AndroidManifest.xml:22:5-26:19
 MERGED from [androidx.compose.ui:ui-tooling-android:1.7.6] C:\Users\shubh\.gradle\caches\8.9\transforms\d4ab53c4d80d63d68ee160d2eeb8ddc0\transformed\ui-tooling-release\AndroidManifest.xml:22:5-26:19
@@ -119,37 +135,45 @@ MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] C:\Users\sh
 	android:appComponentFactory
 		ADDED from [androidx.core:core:1.15.0] C:\Users\shubh\.gradle\caches\8.9\transforms\cd46abea9d16e862d0dfae7b2db85bca\transformed\core-1.15.0\AndroidManifest.xml:28:18-86
 	android:supportsRtl
-		ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:18:9-35
+		ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:24:9-35
 	android:label
-		ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:17:9-41
+		ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:23:9-41
 	android:allowBackup
-		ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:16:9-35
+		ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:22:9-35
 	android:theme
-		ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:19:9-47
+		ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:25:9-47
 	android:name
-		ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:15:9-39
+		ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:21:9-39
 activity#com.robomanipal.imusensor.MainActivity
-ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:20:9-30:20
+ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:26:9-36:20
 	android:screenOrientation
-		ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:25:13-49
+		ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:31:13-49
 	android:exported
-		ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:22:13-36
+		ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:28:13-36
 	android:configChanges
-		ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:24:13-87
+		ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:30:13-87
 	android:theme
-		ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:23:13-51
+		ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:29:13-51
 	android:name
-		ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:21:13-41
+		ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:27:13-41
 intent-filter#action:name:android.intent.action.MAIN+category:name:android.intent.category.LAUNCHER
-ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:26:13-29:29
+ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:32:13-35:29
 action#android.intent.action.MAIN
-ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:27:17-69
+ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:33:17-69
 	android:name
-		ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:27:25-66
+		ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:33:25-66
 category#android.intent.category.LAUNCHER
-ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:28:17-77
+ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:34:17-77
 	android:name
-		ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:28:27-74
+		ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:34:27-74
+service#com.robomanipal.imusensor.streaming.StreamingService
+ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:38:9-41:63
+	android:exported
+		ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:40:13-37
+	android:foregroundServiceType
+		ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:41:13-60
+	android:name
+		ADDED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:39:13-55
 uses-sdk
 INJECTED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml reason: use-sdk injection requested
 INJECTED from C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml

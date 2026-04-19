@@ -5,7 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.unit.dp
 import com.robomanipal.imusensor.ui.theme.AxisXColor
 import com.robomanipal.imusensor.ui.theme.AxisYColor
@@ -84,14 +84,11 @@ fun OrientationCube(
 
         // ── Draw cube edges ─────────────────────────────────────────────
         val projected = verts.map { project(rotatePoint(it)) }
-        val glowStroke = Stroke(width = 4.dp.toPx(), cap = androidx.compose.ui.graphics.StrokeCap.Round)
-        val lineStroke = Stroke(width = 1.5.dp.toPx(), cap = androidx.compose.ui.graphics.StrokeCap.Round)
+        val lineStroke = 1.8.dp.toPx()
 
         for ((a, b) in edges) {
-            // Glow
-            drawLine(edgeColor.copy(alpha = 0.2f), projected[a], projected[b], strokeWidth = glowStroke.width)
-            // Core
-            drawLine(edgeColor.copy(alpha = 0.8f), projected[a], projected[b], strokeWidth = lineStroke.width)
+            drawLine(edgeColor.copy(alpha = 0.75f), projected[a], projected[b], strokeWidth = lineStroke,
+                cap = StrokeCap.Round)
         }
 
         // ── Draw axis indicators ────────────────────────────────────────
