@@ -34,6 +34,7 @@ import com.robomanipal.imusensor.ui.theme.CardShadowSpot
  *   2. Inner top-edge highlight simulating a light source
  *   3. Gradient border fading from bright-top to dim-bottom
  *   4. Press animation: scale down + slight Y translation (card "pushes in")
+ *   5. Optional accent glow for hero cards
  */
 @Composable
 fun GlassCard(
@@ -41,6 +42,7 @@ fun GlassCard(
     onClick: (() -> Unit)? = null,
     cornerRadius: Dp = 22.dp,
     accentColor: Color = Color.White,
+    accentGlow: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val shape = RoundedCornerShape(cornerRadius)
@@ -66,17 +68,18 @@ fun GlassCard(
     // Gradient fill: subtle accent tint fading to near-transparent
     val glassFill = Brush.verticalGradient(
         colors = listOf(
-            accentColor.copy(alpha = 0.07f),
-            accentColor.copy(alpha = 0.025f),
+            accentColor.copy(alpha = 0.08f),
+            accentColor.copy(alpha = 0.03f),
             Color.Transparent,
         ),
     )
 
-    // Border: brighter on top-left (light source), dimmer on bottom-right
+    // Border: top-left highlight only — visionOS style
     val borderBrush = Brush.linearGradient(
         colors = listOf(
-            Color.White.copy(alpha = 0.16f),
-            Color.White.copy(alpha = 0.05f),
+            Color.White.copy(alpha = 0.14f),
+            Color.White.copy(alpha = 0.06f),
+            Color.White.copy(alpha = 0.02f),
         ),
         start = Offset.Zero,
         end   = Offset(600f, 600f),
@@ -89,6 +92,22 @@ fun GlassCard(
                 scaleY = scale
                 translationY = transY
             }
+            // Accent glow behind card for hero elements
+            .then(
+                if (accentGlow) Modifier.drawBehind {
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                accentColor.copy(alpha = 0.12f),
+                                accentColor.copy(alpha = 0.04f),
+                                Color.Transparent,
+                            ),
+                            center = Offset(size.width / 2f, size.height * 0.3f),
+                            radius = size.width * 0.7f,
+                        ),
+                    )
+                } else Modifier
+            )
             // Soft shadow for depth — ambient only, no colored glow
             .shadow(
                 elevation    = elevDp.dp,
@@ -108,11 +127,11 @@ fun GlassCard(
                             Color.Transparent,
                         ),
                         startY = 0f,
-                        endY   = 24.dp.toPx(),
+                        endY   = 20.dp.toPx(),
                     ),
                 )
             }
-            .border(width = 0.75.dp, brush = borderBrush, shape = shape)
+            .border(width = 0.5.dp, brush = borderBrush, shape = shape)
             .then(
                 if (onClick != null) Modifier.clickable(
                     interactionSource = interactionSource,

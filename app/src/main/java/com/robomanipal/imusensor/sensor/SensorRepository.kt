@@ -36,6 +36,26 @@ class SensorRepository(context: Context) {
     val hasMagnetometer: Boolean  get() = sm.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD) != null
     val hasRotationVector: Boolean get() = sm.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR) != null
 
+    // ── Sensor metadata ───────────────────────────────────────────────
+    data class SensorMeta(
+        val name: String,
+        val vendor: String,
+        val maxRange: Float,
+        val resolution: Float,
+    )
+
+    fun getAccelMeta(): SensorMeta? = sm.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)?.toMeta()
+    fun getGyroMeta(): SensorMeta?  = sm.getDefaultSensor(Sensor.TYPE_GYROSCOPE)?.toMeta()
+    fun getMagMeta(): SensorMeta?   = sm.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD)?.toMeta()
+    fun getRotVecMeta(): SensorMeta? = sm.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)?.toMeta()
+
+    private fun Sensor.toMeta() = SensorMeta(
+        name       = name,
+        vendor     = vendor,
+        maxRange   = maximumRange,
+        resolution = resolution,
+    )
+
     // ── Listeners ──────────────────────────────────────────────────────
     private val accelListener = object : SensorEventListener {
         override fun onSensorChanged(e: SensorEvent) {

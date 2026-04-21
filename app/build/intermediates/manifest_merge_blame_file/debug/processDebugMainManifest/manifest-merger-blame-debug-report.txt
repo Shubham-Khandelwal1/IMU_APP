@@ -78,119 +78,120 @@
 45-->C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:23:9-41
 46        android:supportsRtl="true"
 46-->C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:24:9-35
-47        android:theme="@style/Theme.IMUSensor" >
-47-->C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:25:9-47
-48        <activity
-48-->C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:26:9-36:20
-49            android:name="com.robomanipal.imusensor.MainActivity"
-49-->C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:27:13-41
-50            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
-50-->C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:30:13-87
-51            android:exported="true"
-51-->C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:28:13-36
-52            android:screenOrientation="portrait"
-52-->C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:31:13-49
-53            android:theme="@style/Theme.IMUSensor" >
-53-->C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:29:13-51
-54            <intent-filter>
-54-->C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:32:13-35:29
-55                <action android:name="android.intent.action.MAIN" />
-55-->C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:33:17-69
-55-->C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:33:25-66
-56
-57                <category android:name="android.intent.category.LAUNCHER" />
-57-->C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:34:17-77
-57-->C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:34:27-74
-58            </intent-filter>
-59        </activity>
-60
-61        <service
-61-->C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:38:9-41:63
-62            android:name="com.robomanipal.imusensor.streaming.StreamingService"
-62-->C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:39:13-55
-63            android:exported="false"
-63-->C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:40:13-37
-64            android:foregroundServiceType="connectedDevice" />
-64-->C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:41:13-60
-65
-66        <activity
-66-->[androidx.compose.ui:ui-test-manifest:1.7.6] C:\Users\shubh\.gradle\caches\8.9\transforms\354494834154c94a9416df003ff1a94e\transformed\ui-test-manifest-1.7.6\AndroidManifest.xml:23:9-25:39
-67            android:name="androidx.activity.ComponentActivity"
-67-->[androidx.compose.ui:ui-test-manifest:1.7.6] C:\Users\shubh\.gradle\caches\8.9\transforms\354494834154c94a9416df003ff1a94e\transformed\ui-test-manifest-1.7.6\AndroidManifest.xml:24:13-63
-68            android:exported="true" />
-68-->[androidx.compose.ui:ui-test-manifest:1.7.6] C:\Users\shubh\.gradle\caches\8.9\transforms\354494834154c94a9416df003ff1a94e\transformed\ui-test-manifest-1.7.6\AndroidManifest.xml:25:13-36
-69        <activity
-69-->[androidx.compose.ui:ui-tooling-android:1.7.6] C:\Users\shubh\.gradle\caches\8.9\transforms\d4ab53c4d80d63d68ee160d2eeb8ddc0\transformed\ui-tooling-release\AndroidManifest.xml:23:9-25:39
-70            android:name="androidx.compose.ui.tooling.PreviewActivity"
-70-->[androidx.compose.ui:ui-tooling-android:1.7.6] C:\Users\shubh\.gradle\caches\8.9\transforms\d4ab53c4d80d63d68ee160d2eeb8ddc0\transformed\ui-tooling-release\AndroidManifest.xml:24:13-71
-71            android:exported="true" />
-71-->[androidx.compose.ui:ui-tooling-android:1.7.6] C:\Users\shubh\.gradle\caches\8.9\transforms\d4ab53c4d80d63d68ee160d2eeb8ddc0\transformed\ui-tooling-release\AndroidManifest.xml:25:13-36
-72
-73        <provider
-73-->[androidx.emoji2:emoji2:1.3.0] C:\Users\shubh\.gradle\caches\8.9\transforms\e9a4de5f87829d8e56de87ff35dfed60\transformed\emoji2-1.3.0\AndroidManifest.xml:24:9-32:20
-74            android:name="androidx.startup.InitializationProvider"
-74-->[androidx.emoji2:emoji2:1.3.0] C:\Users\shubh\.gradle\caches\8.9\transforms\e9a4de5f87829d8e56de87ff35dfed60\transformed\emoji2-1.3.0\AndroidManifest.xml:25:13-67
-75            android:authorities="com.robomanipal.imusensor.androidx-startup"
-75-->[androidx.emoji2:emoji2:1.3.0] C:\Users\shubh\.gradle\caches\8.9\transforms\e9a4de5f87829d8e56de87ff35dfed60\transformed\emoji2-1.3.0\AndroidManifest.xml:26:13-68
-76            android:exported="false" >
-76-->[androidx.emoji2:emoji2:1.3.0] C:\Users\shubh\.gradle\caches\8.9\transforms\e9a4de5f87829d8e56de87ff35dfed60\transformed\emoji2-1.3.0\AndroidManifest.xml:27:13-37
-77            <meta-data
-77-->[androidx.emoji2:emoji2:1.3.0] C:\Users\shubh\.gradle\caches\8.9\transforms\e9a4de5f87829d8e56de87ff35dfed60\transformed\emoji2-1.3.0\AndroidManifest.xml:29:13-31:52
-78                android:name="androidx.emoji2.text.EmojiCompatInitializer"
-78-->[androidx.emoji2:emoji2:1.3.0] C:\Users\shubh\.gradle\caches\8.9\transforms\e9a4de5f87829d8e56de87ff35dfed60\transformed\emoji2-1.3.0\AndroidManifest.xml:30:17-75
-79                android:value="androidx.startup" />
-79-->[androidx.emoji2:emoji2:1.3.0] C:\Users\shubh\.gradle\caches\8.9\transforms\e9a4de5f87829d8e56de87ff35dfed60\transformed\emoji2-1.3.0\AndroidManifest.xml:31:17-49
-80            <meta-data
-80-->[androidx.lifecycle:lifecycle-process:2.8.7] C:\Users\shubh\.gradle\caches\8.9\transforms\ef3f1b8cf943e0590111f6b7a018d36f\transformed\lifecycle-process-2.8.7\AndroidManifest.xml:29:13-31:52
-81                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
-81-->[androidx.lifecycle:lifecycle-process:2.8.7] C:\Users\shubh\.gradle\caches\8.9\transforms\ef3f1b8cf943e0590111f6b7a018d36f\transformed\lifecycle-process-2.8.7\AndroidManifest.xml:30:17-78
-82                android:value="androidx.startup" />
-82-->[androidx.lifecycle:lifecycle-process:2.8.7] C:\Users\shubh\.gradle\caches\8.9\transforms\ef3f1b8cf943e0590111f6b7a018d36f\transformed\lifecycle-process-2.8.7\AndroidManifest.xml:31:17-49
-83            <meta-data
-83-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\shubh\.gradle\caches\8.9\transforms\4d07dd122260385b5a0f7c79a656e780\transformed\profileinstaller-1.3.1\AndroidManifest.xml:29:13-31:52
-84                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
-84-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\shubh\.gradle\caches\8.9\transforms\4d07dd122260385b5a0f7c79a656e780\transformed\profileinstaller-1.3.1\AndroidManifest.xml:30:17-85
-85                android:value="androidx.startup" />
-85-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\shubh\.gradle\caches\8.9\transforms\4d07dd122260385b5a0f7c79a656e780\transformed\profileinstaller-1.3.1\AndroidManifest.xml:31:17-49
-86        </provider>
-87
-88        <receiver
-88-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\shubh\.gradle\caches\8.9\transforms\4d07dd122260385b5a0f7c79a656e780\transformed\profileinstaller-1.3.1\AndroidManifest.xml:34:9-52:20
-89            android:name="androidx.profileinstaller.ProfileInstallReceiver"
-89-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\shubh\.gradle\caches\8.9\transforms\4d07dd122260385b5a0f7c79a656e780\transformed\profileinstaller-1.3.1\AndroidManifest.xml:35:13-76
-90            android:directBootAware="false"
-90-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\shubh\.gradle\caches\8.9\transforms\4d07dd122260385b5a0f7c79a656e780\transformed\profileinstaller-1.3.1\AndroidManifest.xml:36:13-44
-91            android:enabled="true"
-91-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\shubh\.gradle\caches\8.9\transforms\4d07dd122260385b5a0f7c79a656e780\transformed\profileinstaller-1.3.1\AndroidManifest.xml:37:13-35
-92            android:exported="true"
-92-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\shubh\.gradle\caches\8.9\transforms\4d07dd122260385b5a0f7c79a656e780\transformed\profileinstaller-1.3.1\AndroidManifest.xml:38:13-36
-93            android:permission="android.permission.DUMP" >
-93-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\shubh\.gradle\caches\8.9\transforms\4d07dd122260385b5a0f7c79a656e780\transformed\profileinstaller-1.3.1\AndroidManifest.xml:39:13-57
-94            <intent-filter>
-94-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\shubh\.gradle\caches\8.9\transforms\4d07dd122260385b5a0f7c79a656e780\transformed\profileinstaller-1.3.1\AndroidManifest.xml:40:13-42:29
-95                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
-95-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\shubh\.gradle\caches\8.9\transforms\4d07dd122260385b5a0f7c79a656e780\transformed\profileinstaller-1.3.1\AndroidManifest.xml:41:17-91
-95-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\shubh\.gradle\caches\8.9\transforms\4d07dd122260385b5a0f7c79a656e780\transformed\profileinstaller-1.3.1\AndroidManifest.xml:41:25-88
-96            </intent-filter>
-97            <intent-filter>
-97-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\shubh\.gradle\caches\8.9\transforms\4d07dd122260385b5a0f7c79a656e780\transformed\profileinstaller-1.3.1\AndroidManifest.xml:43:13-45:29
-98                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
-98-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\shubh\.gradle\caches\8.9\transforms\4d07dd122260385b5a0f7c79a656e780\transformed\profileinstaller-1.3.1\AndroidManifest.xml:44:17-85
-98-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\shubh\.gradle\caches\8.9\transforms\4d07dd122260385b5a0f7c79a656e780\transformed\profileinstaller-1.3.1\AndroidManifest.xml:44:25-82
-99            </intent-filter>
-100            <intent-filter>
-100-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\shubh\.gradle\caches\8.9\transforms\4d07dd122260385b5a0f7c79a656e780\transformed\profileinstaller-1.3.1\AndroidManifest.xml:46:13-48:29
-101                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
-101-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\shubh\.gradle\caches\8.9\transforms\4d07dd122260385b5a0f7c79a656e780\transformed\profileinstaller-1.3.1\AndroidManifest.xml:47:17-88
-101-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\shubh\.gradle\caches\8.9\transforms\4d07dd122260385b5a0f7c79a656e780\transformed\profileinstaller-1.3.1\AndroidManifest.xml:47:25-85
-102            </intent-filter>
-103            <intent-filter>
-103-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\shubh\.gradle\caches\8.9\transforms\4d07dd122260385b5a0f7c79a656e780\transformed\profileinstaller-1.3.1\AndroidManifest.xml:49:13-51:29
-104                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
-104-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\shubh\.gradle\caches\8.9\transforms\4d07dd122260385b5a0f7c79a656e780\transformed\profileinstaller-1.3.1\AndroidManifest.xml:50:17-95
-104-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\shubh\.gradle\caches\8.9\transforms\4d07dd122260385b5a0f7c79a656e780\transformed\profileinstaller-1.3.1\AndroidManifest.xml:50:25-92
-105            </intent-filter>
-106        </receiver>
-107    </application>
-108
-109</manifest>
+47        android:testOnly="true"
+48        android:theme="@style/Theme.IMUSensor" >
+48-->C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:25:9-47
+49        <activity
+49-->C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:26:9-36:20
+50            android:name="com.robomanipal.imusensor.MainActivity"
+50-->C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:27:13-41
+51            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
+51-->C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:30:13-87
+52            android:exported="true"
+52-->C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:28:13-36
+53            android:screenOrientation="portrait"
+53-->C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:31:13-49
+54            android:theme="@style/Theme.IMUSensor" >
+54-->C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:29:13-51
+55            <intent-filter>
+55-->C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:32:13-35:29
+56                <action android:name="android.intent.action.MAIN" />
+56-->C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:33:17-69
+56-->C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:33:25-66
+57
+58                <category android:name="android.intent.category.LAUNCHER" />
+58-->C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:34:17-77
+58-->C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:34:27-74
+59            </intent-filter>
+60        </activity>
+61
+62        <service
+62-->C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:38:9-41:63
+63            android:name="com.robomanipal.imusensor.streaming.StreamingService"
+63-->C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:39:13-55
+64            android:exported="false"
+64-->C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:40:13-37
+65            android:foregroundServiceType="connectedDevice" />
+65-->C:\RoboManipal\IMU_APP\app\src\main\AndroidManifest.xml:41:13-60
+66
+67        <activity
+67-->[androidx.compose.ui:ui-test-manifest:1.7.6] C:\Users\shubh\.gradle\caches\8.9\transforms\354494834154c94a9416df003ff1a94e\transformed\ui-test-manifest-1.7.6\AndroidManifest.xml:23:9-25:39
+68            android:name="androidx.activity.ComponentActivity"
+68-->[androidx.compose.ui:ui-test-manifest:1.7.6] C:\Users\shubh\.gradle\caches\8.9\transforms\354494834154c94a9416df003ff1a94e\transformed\ui-test-manifest-1.7.6\AndroidManifest.xml:24:13-63
+69            android:exported="true" />
+69-->[androidx.compose.ui:ui-test-manifest:1.7.6] C:\Users\shubh\.gradle\caches\8.9\transforms\354494834154c94a9416df003ff1a94e\transformed\ui-test-manifest-1.7.6\AndroidManifest.xml:25:13-36
+70        <activity
+70-->[androidx.compose.ui:ui-tooling-android:1.7.6] C:\Users\shubh\.gradle\caches\8.9\transforms\d4ab53c4d80d63d68ee160d2eeb8ddc0\transformed\ui-tooling-release\AndroidManifest.xml:23:9-25:39
+71            android:name="androidx.compose.ui.tooling.PreviewActivity"
+71-->[androidx.compose.ui:ui-tooling-android:1.7.6] C:\Users\shubh\.gradle\caches\8.9\transforms\d4ab53c4d80d63d68ee160d2eeb8ddc0\transformed\ui-tooling-release\AndroidManifest.xml:24:13-71
+72            android:exported="true" />
+72-->[androidx.compose.ui:ui-tooling-android:1.7.6] C:\Users\shubh\.gradle\caches\8.9\transforms\d4ab53c4d80d63d68ee160d2eeb8ddc0\transformed\ui-tooling-release\AndroidManifest.xml:25:13-36
+73
+74        <provider
+74-->[androidx.emoji2:emoji2:1.3.0] C:\Users\shubh\.gradle\caches\8.9\transforms\e9a4de5f87829d8e56de87ff35dfed60\transformed\emoji2-1.3.0\AndroidManifest.xml:24:9-32:20
+75            android:name="androidx.startup.InitializationProvider"
+75-->[androidx.emoji2:emoji2:1.3.0] C:\Users\shubh\.gradle\caches\8.9\transforms\e9a4de5f87829d8e56de87ff35dfed60\transformed\emoji2-1.3.0\AndroidManifest.xml:25:13-67
+76            android:authorities="com.robomanipal.imusensor.androidx-startup"
+76-->[androidx.emoji2:emoji2:1.3.0] C:\Users\shubh\.gradle\caches\8.9\transforms\e9a4de5f87829d8e56de87ff35dfed60\transformed\emoji2-1.3.0\AndroidManifest.xml:26:13-68
+77            android:exported="false" >
+77-->[androidx.emoji2:emoji2:1.3.0] C:\Users\shubh\.gradle\caches\8.9\transforms\e9a4de5f87829d8e56de87ff35dfed60\transformed\emoji2-1.3.0\AndroidManifest.xml:27:13-37
+78            <meta-data
+78-->[androidx.emoji2:emoji2:1.3.0] C:\Users\shubh\.gradle\caches\8.9\transforms\e9a4de5f87829d8e56de87ff35dfed60\transformed\emoji2-1.3.0\AndroidManifest.xml:29:13-31:52
+79                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+79-->[androidx.emoji2:emoji2:1.3.0] C:\Users\shubh\.gradle\caches\8.9\transforms\e9a4de5f87829d8e56de87ff35dfed60\transformed\emoji2-1.3.0\AndroidManifest.xml:30:17-75
+80                android:value="androidx.startup" />
+80-->[androidx.emoji2:emoji2:1.3.0] C:\Users\shubh\.gradle\caches\8.9\transforms\e9a4de5f87829d8e56de87ff35dfed60\transformed\emoji2-1.3.0\AndroidManifest.xml:31:17-49
+81            <meta-data
+81-->[androidx.lifecycle:lifecycle-process:2.8.7] C:\Users\shubh\.gradle\caches\8.9\transforms\ef3f1b8cf943e0590111f6b7a018d36f\transformed\lifecycle-process-2.8.7\AndroidManifest.xml:29:13-31:52
+82                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+82-->[androidx.lifecycle:lifecycle-process:2.8.7] C:\Users\shubh\.gradle\caches\8.9\transforms\ef3f1b8cf943e0590111f6b7a018d36f\transformed\lifecycle-process-2.8.7\AndroidManifest.xml:30:17-78
+83                android:value="androidx.startup" />
+83-->[androidx.lifecycle:lifecycle-process:2.8.7] C:\Users\shubh\.gradle\caches\8.9\transforms\ef3f1b8cf943e0590111f6b7a018d36f\transformed\lifecycle-process-2.8.7\AndroidManifest.xml:31:17-49
+84            <meta-data
+84-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\shubh\.gradle\caches\8.9\transforms\4d07dd122260385b5a0f7c79a656e780\transformed\profileinstaller-1.3.1\AndroidManifest.xml:29:13-31:52
+85                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
+85-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\shubh\.gradle\caches\8.9\transforms\4d07dd122260385b5a0f7c79a656e780\transformed\profileinstaller-1.3.1\AndroidManifest.xml:30:17-85
+86                android:value="androidx.startup" />
+86-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\shubh\.gradle\caches\8.9\transforms\4d07dd122260385b5a0f7c79a656e780\transformed\profileinstaller-1.3.1\AndroidManifest.xml:31:17-49
+87        </provider>
+88
+89        <receiver
+89-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\shubh\.gradle\caches\8.9\transforms\4d07dd122260385b5a0f7c79a656e780\transformed\profileinstaller-1.3.1\AndroidManifest.xml:34:9-52:20
+90            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+90-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\shubh\.gradle\caches\8.9\transforms\4d07dd122260385b5a0f7c79a656e780\transformed\profileinstaller-1.3.1\AndroidManifest.xml:35:13-76
+91            android:directBootAware="false"
+91-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\shubh\.gradle\caches\8.9\transforms\4d07dd122260385b5a0f7c79a656e780\transformed\profileinstaller-1.3.1\AndroidManifest.xml:36:13-44
+92            android:enabled="true"
+92-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\shubh\.gradle\caches\8.9\transforms\4d07dd122260385b5a0f7c79a656e780\transformed\profileinstaller-1.3.1\AndroidManifest.xml:37:13-35
+93            android:exported="true"
+93-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\shubh\.gradle\caches\8.9\transforms\4d07dd122260385b5a0f7c79a656e780\transformed\profileinstaller-1.3.1\AndroidManifest.xml:38:13-36
+94            android:permission="android.permission.DUMP" >
+94-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\shubh\.gradle\caches\8.9\transforms\4d07dd122260385b5a0f7c79a656e780\transformed\profileinstaller-1.3.1\AndroidManifest.xml:39:13-57
+95            <intent-filter>
+95-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\shubh\.gradle\caches\8.9\transforms\4d07dd122260385b5a0f7c79a656e780\transformed\profileinstaller-1.3.1\AndroidManifest.xml:40:13-42:29
+96                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
+96-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\shubh\.gradle\caches\8.9\transforms\4d07dd122260385b5a0f7c79a656e780\transformed\profileinstaller-1.3.1\AndroidManifest.xml:41:17-91
+96-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\shubh\.gradle\caches\8.9\transforms\4d07dd122260385b5a0f7c79a656e780\transformed\profileinstaller-1.3.1\AndroidManifest.xml:41:25-88
+97            </intent-filter>
+98            <intent-filter>
+98-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\shubh\.gradle\caches\8.9\transforms\4d07dd122260385b5a0f7c79a656e780\transformed\profileinstaller-1.3.1\AndroidManifest.xml:43:13-45:29
+99                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
+99-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\shubh\.gradle\caches\8.9\transforms\4d07dd122260385b5a0f7c79a656e780\transformed\profileinstaller-1.3.1\AndroidManifest.xml:44:17-85
+99-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\shubh\.gradle\caches\8.9\transforms\4d07dd122260385b5a0f7c79a656e780\transformed\profileinstaller-1.3.1\AndroidManifest.xml:44:25-82
+100            </intent-filter>
+101            <intent-filter>
+101-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\shubh\.gradle\caches\8.9\transforms\4d07dd122260385b5a0f7c79a656e780\transformed\profileinstaller-1.3.1\AndroidManifest.xml:46:13-48:29
+102                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
+102-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\shubh\.gradle\caches\8.9\transforms\4d07dd122260385b5a0f7c79a656e780\transformed\profileinstaller-1.3.1\AndroidManifest.xml:47:17-88
+102-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\shubh\.gradle\caches\8.9\transforms\4d07dd122260385b5a0f7c79a656e780\transformed\profileinstaller-1.3.1\AndroidManifest.xml:47:25-85
+103            </intent-filter>
+104            <intent-filter>
+104-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\shubh\.gradle\caches\8.9\transforms\4d07dd122260385b5a0f7c79a656e780\transformed\profileinstaller-1.3.1\AndroidManifest.xml:49:13-51:29
+105                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
+105-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\shubh\.gradle\caches\8.9\transforms\4d07dd122260385b5a0f7c79a656e780\transformed\profileinstaller-1.3.1\AndroidManifest.xml:50:17-95
+105-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\shubh\.gradle\caches\8.9\transforms\4d07dd122260385b5a0f7c79a656e780\transformed\profileinstaller-1.3.1\AndroidManifest.xml:50:25-92
+106            </intent-filter>
+107        </receiver>
+108    </application>
+109
+110</manifest>

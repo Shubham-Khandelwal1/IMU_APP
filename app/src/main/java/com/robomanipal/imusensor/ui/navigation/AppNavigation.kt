@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
@@ -20,6 +21,8 @@ import androidx.navigation.navArgument
 import com.robomanipal.imusensor.ui.components.AnimatedNavBar
 import com.robomanipal.imusensor.ui.components.NavItem
 import com.robomanipal.imusensor.ui.screens.*
+import com.robomanipal.imusensor.ui.theme.StatusActive
+import com.robomanipal.imusensor.ui.theme.StreamActiveColor
 import com.robomanipal.imusensor.viewmodel.SensorViewModel
 import com.robomanipal.imusensor.viewmodel.StreamViewModel
 import kotlinx.coroutines.launch
@@ -30,13 +33,6 @@ object Routes {
     const val SENSOR_DETAIL = "sensor/{type}"
     fun sensorDetail(type: String) = "sensor/$type"
 }
-
-private val bottomNavItems = listOf(
-    NavItem(Icons.Default.Dashboard, "Home"),
-    NavItem(Icons.Default.ViewInAr,  "3D View"),   // ← updated icon
-    NavItem(Icons.Default.Wifi,      "Stream"),
-    NavItem(Icons.Default.Settings,  "Settings"),
-)
 
 /**
  * Root composable.
@@ -92,8 +88,7 @@ fun AppNavigation(modifier: Modifier = Modifier) {
 }
 
 /**
- * The four swipeable tabs + bottom nav.
- * HorizontalPager drives both swipe and tab-click navigation.
+ * The four swipeable tabs + bottom nav with status badges.
  */
 @Composable
 private fun MainTabs(
@@ -104,14 +99,25 @@ private fun MainTabs(
     val scope      = rememberCoroutineScope()
     val pagerState = rememberPagerState(pageCount = { 4 })
 
+    // Watch streaming state for badge
+    val isStreaming by streamVm.isStreaming.collectAsStateWithLifecycle()
+
+    // Build nav items with dynamic badge colors
+    val bottomNavItems = remember(isStreaming) {
+        listOf(
+            NavItem(Icons.Default.Dashboard, "Home", StatusActive),
+            NavItem(Icons.Default.ViewInAr,  "3D View"),
+            NavItem(Icons.Default.Wifi,      "Stream", if (isStreaming) StreamActiveColor else null),
+            NavItem(Icons.Default.Settings,  "Settings"),
+        )
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
 
         // ── Swipeable pages ────────────────────────────────────────────
         HorizontalPager(
             state    = pagerState,
             modifier = Modifier.fillMaxSize(),
-            // Disable swipe on Stream/Settings to avoid accidental dismissal
-            // while typing IP — enable everywhere for now, easy to restrict later
             userScrollEnabled = true,
         ) { page ->
             when (page) {

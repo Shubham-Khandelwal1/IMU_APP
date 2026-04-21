@@ -33,7 +33,7 @@ fun OrientationScreen(
 ) {
     val orient by vm.orientation.collectAsStateWithLifecycle()
 
-    // ── Staggered entrance state ───────────────────────────────────────
+    // ── Staggered entrance ─────────────────────────────────────────
     var step by remember { mutableIntStateOf(0) }
     LaunchedEffect(Unit) {
         kotlinx.coroutines.delay(60);  step = 1
@@ -43,7 +43,6 @@ fun OrientationScreen(
         kotlinx.coroutines.delay(90);  step = 5
     }
 
-    // Spring-based slide + fade — hoisted to composable scope
     val a1 by animateFloatAsState(if (step >= 1) 1f else 0f, tween(450), label = "a1")
     val o1 by animateFloatAsState(if (step >= 1) 0f else 45f, spring(dampingRatio = 0.65f, stiffness = 180f), label = "o1")
     val a2 by animateFloatAsState(if (step >= 2) 1f else 0f, tween(450), label = "a2")
@@ -62,7 +61,7 @@ fun OrientationScreen(
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color(0xFF0D0D1A),
+                        Color(0xFF0A0A16),
                         DarkBackground,
                         DarkBackground,
                     )
@@ -73,7 +72,7 @@ fun OrientationScreen(
             .padding(horizontal = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(12.dp))
 
         // ── Header ─────────────────────────────────────────────────────
         Text(
@@ -81,13 +80,12 @@ fun OrientationScreen(
             style = MaterialTheme.typography.headlineLarge,
             fontWeight = FontWeight.Bold,
             color = Color.White,
-            modifier = Modifier.graphicsLayer {
-                alpha = a1
-                translationY = o1
-            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .graphicsLayer { alpha = a1; translationY = o1 },
         )
 
-        Spacer(Modifier.height(20.dp))
+        Spacer(Modifier.height(16.dp))
 
         // ── 3D Cube ────────────────────────────────────────────────────
         GlassCard(
@@ -100,6 +98,7 @@ fun OrientationScreen(
                     scaleY = s2
                 },
             accentColor = OrientColor,
+            accentGlow = true,
         ) {
             Box(
                 modifier = Modifier.fillMaxWidth(),
@@ -112,45 +111,39 @@ fun OrientationScreen(
                     edgeColor = OrientColor,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(210.dp),
-                )
-            }
-        }
-
-        Spacer(Modifier.height(24.dp))
-
-        // ── YPR Gauges ─────────────────────────────────────────────────
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .graphicsLayer {
-                    alpha = a3
-                    translationY = o3
-                },
-        ) {
-            GlassCard(
-                modifier = Modifier.fillMaxWidth(),
-                accentColor = Color.White.copy(alpha = 0.5f),
-            ) {
-                YPRGauges(
-                    yaw   = orient.yaw,
-                    pitch = orient.pitch,
-                    roll  = orient.roll,
-                    modifier = Modifier.padding(vertical = 8.dp),
+                        .height(240.dp),
                 )
             }
         }
 
         Spacer(Modifier.height(16.dp))
 
-        // ── Euler Angles numeric readout ───────────────────────────────
+        // ── YPR Gauges ─────────────────────────────────────────────────
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .graphicsLayer { alpha = a3; translationY = o3 },
+        ) {
+            GlassCard(
+                modifier = Modifier.fillMaxWidth(),
+                accentColor = Color.White.copy(alpha = 0.3f),
+            ) {
+                YPRGauges(
+                    yaw   = orient.yaw,
+                    pitch = orient.pitch,
+                    roll  = orient.roll,
+                    modifier = Modifier.padding(vertical = 4.dp),
+                )
+            }
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        // ── Euler Angles ───────────────────────────────────────────────
         GlassCard(
             modifier = Modifier
                 .fillMaxWidth()
-                .graphicsLayer {
-                    alpha = a4
-                    translationY = o4
-                },
+                .graphicsLayer { alpha = a4; translationY = o4 },
             accentColor = OrientColor,
         ) {
             Row(
@@ -172,21 +165,18 @@ fun OrientationScreen(
                 )
             }
             Spacer(Modifier.height(14.dp))
-            EulerRow("Yaw",   orient.yaw,   Color(0xFF00E5FF))
-            EulerRow("Pitch", orient.pitch, Color(0xFFAA00FF))
-            EulerRow("Roll",  orient.roll,  Color(0xFFFF6D00))
+            EulerRow("Yaw",   orient.yaw,   AccelColor)
+            EulerRow("Pitch", orient.pitch, GyroColor)
+            EulerRow("Roll",  orient.roll,  MagColor)
         }
 
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(12.dp))
 
         // ── Quaternion ─────────────────────────────────────────────────
         GlassCard(
             modifier = Modifier
                 .fillMaxWidth()
-                .graphicsLayer {
-                    alpha = a5
-                    translationY = o5
-                },
+                .graphicsLayer { alpha = a5; translationY = o5 },
             accentColor = OrientColor.copy(alpha = 0.4f),
         ) {
             Text(
@@ -207,7 +197,7 @@ fun OrientationScreen(
             }
         }
 
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(12.dp))
 
         // ── Rotation Matrix ────────────────────────────────────────────
         if (step >= 5) {

@@ -15,7 +15,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.robomanipal.imusensor.ui.theme.SensorValueFont
+import com.robomanipal.imusensor.ui.theme.*
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -214,7 +214,7 @@ fun YPRGauges(
             displayValue = yaw,
             arcFraction  = (yaw + 180f) / 360f,
             label        = "YAW",
-            color        = Color(0xFF00E5FF),
+            color        = AccelColor,
             rangeLabel   = "±180°",
             modifier     = Modifier.weight(1f),
         )
@@ -222,7 +222,7 @@ fun YPRGauges(
             displayValue = pitch,
             arcFraction  = (pitch + 90f) / 180f,
             label        = "PITCH",
-            color        = Color(0xFFAA00FF),
+            color        = GyroColor,
             rangeLabel   = "±90°",
             modifier     = Modifier.weight(1f),
         )
@@ -230,7 +230,7 @@ fun YPRGauges(
             displayValue = roll,
             arcFraction  = (roll + 180f) / 360f,
             label        = "ROLL",
-            color        = Color(0xFFFF6D00),
+            color        = MagColor,
             rangeLabel   = "±180°",
             modifier     = Modifier.weight(1f),
         )

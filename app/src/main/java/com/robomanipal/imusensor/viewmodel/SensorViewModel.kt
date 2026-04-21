@@ -7,6 +7,8 @@ import androidx.lifecycle.viewModelScope
 import com.robomanipal.imusensor.IMUApplication
 import com.robomanipal.imusensor.sensor.OrientationData
 import com.robomanipal.imusensor.sensor.SensorReading
+import com.robomanipal.imusensor.sensor.SensorRepository
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -28,6 +30,17 @@ class SensorViewModel(application: Application) : AndroidViewModel(application) 
     val hasGyroscope      = repo.hasGyroscope
     val hasMagnetometer   = repo.hasMagnetometer
     val hasRotationVector = repo.hasRotationVector
+
+    // ── Sensor metadata ────────────────────────────────────────────────
+    val accelMeta: SensorRepository.SensorMeta?  = repo.getAccelMeta()
+    val gyroMeta: SensorRepository.SensorMeta?   = repo.getGyroMeta()
+    val magMeta: SensorRepository.SensorMeta?    = repo.getMagMeta()
+    val rotVecMeta: SensorRepository.SensorMeta? = repo.getRotVecMeta()
+
+    // ── Uptime tracking ────────────────────────────────────────────────
+    private val startTimeMs = System.currentTimeMillis()
+    private val _uptimeSeconds = MutableStateFlow(0L)
+    val uptimeSeconds: StateFlow<Long> = _uptimeSeconds.asStateFlow()
 
     // ── Latest values ──────────────────────────────────────────────────
     private val _latestAccel  = MutableStateFlow(SensorReading(0, 0f, 0f, 0f))
@@ -69,6 +82,7 @@ class SensorViewModel(application: Application) : AndroidViewModel(application) 
     init {
         startSensors()
         collectFlows()
+        startUptimeTicker()
     }
 
     private fun startSensors() {
@@ -79,6 +93,15 @@ class SensorViewModel(application: Application) : AndroidViewModel(application) 
         _sensorDelay.value = delay
         repo.stopListening()
         repo.startListening(delay)
+    }
+
+    private fun startUptimeTicker() {
+        viewModelScope.launch {
+            while (true) {
+                _uptimeSeconds.value = (System.currentTimeMillis() - startTimeMs) / 1000L
+                delay(1000)
+            }
+        }
     }
 
     private fun collectFlows() {

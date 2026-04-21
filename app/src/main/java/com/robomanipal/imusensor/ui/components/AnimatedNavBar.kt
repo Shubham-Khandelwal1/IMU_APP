@@ -6,6 +6,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -36,6 +37,7 @@ import com.robomanipal.imusensor.ui.theme.TextSecondary
 data class NavItem(
     val icon: ImageVector,
     val label: String,
+    val badgeColor: Color? = null,   // Optional badge dot color
 )
 
 /**
@@ -47,6 +49,7 @@ data class NavItem(
  *   3. Rim lighting — bright on top edge, dim on bottom
  *   4. Inner bottom shadow for grounded depth
  *   5. Subtle cyan tint from the accent color
+ *   6. Optional badge dots on icons for status indication
  */
 @Composable
 fun AnimatedNavBar(
@@ -86,29 +89,29 @@ fun AnimatedNavBar(
                 Brush.verticalGradient(
                     colors = listOf(
                         Color.Transparent,
-                        Color(0xFF0B0B14).copy(alpha = 0.88f),
-                        Color(0xFF0B0B14),
+                        Color(0xFF080810).copy(alpha = 0.92f),
+                        Color(0xFF080810),
                     ),
                 )
             )
             .padding(horizontal = 20.dp)
-            .padding(top = 6.dp, bottom = 10.dp)
+            .padding(top = 4.dp, bottom = 8.dp)
             .navigationBarsPadding(),
     ) {
-        val barShape = RoundedCornerShape(26.dp)
+        val barShape = RoundedCornerShape(24.dp)
 
         // ── Bar background ──────────────────────────────────────────
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(barShape)
-                .background(Color(0xFF131320).copy(alpha = 0.85f))
-                .background(Color.White.copy(alpha = 0.03f))
+                .background(Color(0xFF101018).copy(alpha = 0.90f))
+                .background(Color.White.copy(alpha = 0.02f))
                 .border(
                     width = 0.5.dp,
                     brush = Brush.verticalGradient(
                         colors = listOf(
-                            Color.White.copy(alpha = 0.12f),
+                            Color.White.copy(alpha = 0.10f),
                             Color.White.copy(alpha = 0.02f),
                         ),
                     ),
@@ -121,10 +124,8 @@ fun AnimatedNavBar(
                 val pillOffsetPx = (animatedIndex * itemWidthPx).toInt()
                 val pillWidthDp = with(density) { itemWidthPx.toDp() }
                 val pillHeightDp = with(density) { rowHeightPx.toDp() }
-                val pillShape = RoundedCornerShape(22.dp)
+                val pillShape = RoundedCornerShape(20.dp)
 
-                // Specular highlight travels across pill as it slides
-                // Normalized 0..1 across the full bar width
                 val specularX = if (items.size > 1)
                     animatedIndex / (items.size - 1).toFloat()
                 else 0.5f
@@ -137,37 +138,35 @@ fun AnimatedNavBar(
                         .padding(horizontal = 5.dp, vertical = 4.dp)
                         .clip(pillShape)
 
-                        // Layer 1: Base fill — very subtle warm white
-                        .background(Color.White.copy(alpha = 0.08f))
+                        // Layer 1: Base fill
+                        .background(Color.White.copy(alpha = 0.07f))
 
-                        // Layer 2: Gradient fill — brighter top, fades down
+                        // Layer 2: Gradient fill
                         .background(
                             Brush.verticalGradient(
                                 colors = listOf(
-                                    Color.White.copy(alpha = 0.10f),
-                                    Color.White.copy(alpha = 0.03f),
-                                    Color.White.copy(alpha = 0.05f),
+                                    Color.White.copy(alpha = 0.09f),
+                                    Color.White.copy(alpha = 0.02f),
+                                    Color.White.copy(alpha = 0.04f),
                                 ),
                             )
                         )
 
-                        // Layer 3: Travelling specular + inner shadow + rim
+                        // Layer 3: Specular + inner shadow + rim
                         .drawBehind {
                             val w = size.width
                             val h = size.height
-                            val cr = 22.dp.toPx()
+                            val cr = 20.dp.toPx()
 
-                            // ── Specular highlight (moves with pill) ──
-                            // An elliptical bright spot at the top that
-                            // shifts left-right based on specularX
+                            // Specular highlight
                             val spotCenterX = w * 0.2f + (w * 0.6f * specularX)
                             val spotRadiusX = w * 0.4f
                             val spotRadiusY = h * 0.45f
                             drawOval(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
-                                        Color.White.copy(alpha = 0.14f),
-                                        Color.White.copy(alpha = 0.04f),
+                                        Color.White.copy(alpha = 0.12f),
+                                        Color.White.copy(alpha = 0.03f),
                                         Color.Transparent,
                                     ),
                                     center = Offset(spotCenterX, h * 0.15f),
@@ -177,11 +176,11 @@ fun AnimatedNavBar(
                                 size = Size(spotRadiusX * 2f, spotRadiusY * 2f),
                             )
 
-                            // ── Subtle cyan tint at center ──
+                            // Subtle cyan tint
                             drawOval(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
-                                        CyanPrimary.copy(alpha = 0.05f),
+                                        CyanPrimary.copy(alpha = 0.04f),
                                         Color.Transparent,
                                     ),
                                     center = Offset(w * 0.5f, h * 0.4f),
@@ -191,12 +190,12 @@ fun AnimatedNavBar(
                                 size = Size(w, h),
                             )
 
-                            // ── Inner bottom shadow (grounded depth) ──
+                            // Inner bottom shadow
                             drawRoundRect(
                                 brush = Brush.verticalGradient(
                                     colors = listOf(
                                         Color.Transparent,
-                                        Color.Black.copy(alpha = 0.12f),
+                                        Color.Black.copy(alpha = 0.10f),
                                     ),
                                     startY = h * 0.6f,
                                     endY = h,
@@ -204,7 +203,7 @@ fun AnimatedNavBar(
                                 cornerRadius = CornerRadius(cr),
                             )
 
-                            // ── Top edge bright line (rim light) ──
+                            // Top edge rim
                             val rimPath = Path().apply {
                                 addRoundRect(
                                     RoundRect(
@@ -217,8 +216,8 @@ fun AnimatedNavBar(
                                 path = rimPath,
                                 brush = Brush.verticalGradient(
                                     colors = listOf(
-                                        Color.White.copy(alpha = 0.22f),
-                                        Color.White.copy(alpha = 0.06f),
+                                        Color.White.copy(alpha = 0.18f),
+                                        Color.White.copy(alpha = 0.05f),
                                         Color.Transparent,
                                     ),
                                     startY = 0f,
@@ -228,14 +227,14 @@ fun AnimatedNavBar(
                             )
                         }
 
-                        // Outer border — bright on top, near-invisible bottom
+                        // Outer border
                         .border(
-                            width = 0.75.dp,
+                            width = 0.5.dp,
                             brush = Brush.verticalGradient(
                                 colors = listOf(
-                                    Color.White.copy(alpha = 0.25f),
-                                    Color.White.copy(alpha = 0.08f),
-                                    Color.White.copy(alpha = 0.03f),
+                                    Color.White.copy(alpha = 0.20f),
+                                    Color.White.copy(alpha = 0.06f),
+                                    Color.White.copy(alpha = 0.02f),
                                 ),
                             ),
                             shape = pillShape,
@@ -282,29 +281,41 @@ fun AnimatedNavBar(
                                 indication = null,
                                 onClick = { onItemSelected(index) },
                             )
-                            .padding(vertical = 12.dp),
+                            .padding(vertical = 10.dp),
                     ) {
-                        Icon(
-                            imageVector = item.icon,
-                            contentDescription = item.label,
-                            tint = if (isSelected) CyanPrimary
-                                   else Color.White.copy(alpha = iconAlpha),
-                            modifier = Modifier
-                                .size(20.dp)
-                                .graphicsLayer {
-                                    scaleX = scale
-                                    scaleY = scale
-                                    translationY = liftY
-                                },
-                        )
-                        Spacer(Modifier.height(4.dp))
+                        Box(contentAlignment = Alignment.TopEnd) {
+                            Icon(
+                                imageVector = item.icon,
+                                contentDescription = item.label,
+                                tint = if (isSelected) CyanPrimary
+                                       else Color.White.copy(alpha = iconAlpha),
+                                modifier = Modifier
+                                    .size(19.dp)
+                                    .graphicsLayer {
+                                        scaleX = scale
+                                        scaleY = scale
+                                        translationY = liftY
+                                    },
+                            )
+                            // Badge dot
+                            if (item.badgeColor != null) {
+                                Box(
+                                    modifier = Modifier
+                                        .offset(x = 2.dp, y = (-1).dp)
+                                        .size(6.dp)
+                                        .clip(CircleShape)
+                                        .background(item.badgeColor),
+                                )
+                            }
+                        }
+                        Spacer(Modifier.height(3.dp))
                         Text(
                             text = item.label,
-                            fontSize = 10.sp,
+                            fontSize = 9.sp,
                             fontWeight = if (isSelected) FontWeight.SemiBold
                                          else FontWeight.Normal,
                             color = if (isSelected) CyanPrimary
-                                    else Color.White.copy(alpha = 0.38f),
+                                    else Color.White.copy(alpha = 0.35f),
                             modifier = Modifier.graphicsLayer {
                                 translationY = liftY * 0.3f
                             },
