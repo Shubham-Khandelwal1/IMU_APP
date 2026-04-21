@@ -1,17 +1,21 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>IMU Perception Dashboard</title>
+  <meta name="description" content="Real-time IMU telemetry dashboard with sensor fusion, calibration, and comparison tools." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-  <!-- ── Global Navigation Pill ──────────────────────────────── -->
-  <nav class="global-nav-pill">
+  <!-- ── Toast Container ──────────────────────────────────────── -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- ── Global Navigation Pill ───────────────────────────────── -->
+  <nav class="global-nav-pill" id="globalNav">
     <a href="/" class="nav-pill-item nav-home active">
       <svg class="nav-pill-icon" viewBox="0 0 24 24"><path d="M12 3l-10 9h3v8h4v-6h6v6h4v-8h3z"/></svg> <span>Telemetry</span>
     </a>
@@ -19,27 +23,36 @@
       <svg class="nav-pill-icon" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg> <span>Calibration</span>
     </a>
     <a href="/fusion" class="nav-pill-item nav-fusion">
-      <svg class="nav-pill-icon" viewBox="0 0 24 24"><path d="M19.03 7.39l1.42-1.42c-.45-.51-.9-.97-1.41-1.41L17.62 6c-1.55-1.26-3.5-2.02-5.62-2.02-4.97 0-9 4.03-9 9 0 2.12.76 4.07 2.02 5.62l1.42-1.42c-.51-.45-.97-.9-1.41-1.41L6 17.62C4.74 16.07 3.98 14.12 3.98 12c0-4.42 3.58-8 8-8 2.12 0 4.07.76 5.62 2.02l1.42-1.42c-.45-.51-.9-.97-1.41-1.41zM20.02 12c0 4.42-3.58 8-8 8-2.12 0-4.07-.76-5.62-2.02l-1.42 1.42c.51.45.97.9 1.41 1.41L5 19.38c1.55 1.26 3.5 2.02 5.62 2.02 4.97 0 9-4.03 9-9 0-2.12-.76-4.07-2.02-5.62l-1.42 1.42c.51.45.97.9 1.41 1.41l1.41-1.41c1.26 1.55 2.02 3.5 2.02 5.62z"/></svg> <span>Fusion</span>
+      <svg class="nav-pill-icon" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg> <span>Fusion</span>
     </a>
     <a href="/analysis" class="nav-pill-item nav-analysis">
-      <svg class="nav-pill-icon" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg> <span>Analytical Core</span>
+      <svg class="nav-pill-icon" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg> <span>Analysis</span>
     </a>
   </nav>
 
-  <!-- ── Minimal Header ──────────────────────────────────────── -->
-  <header class="header">
+  <!-- ── Header ───────────────────────────────────────────────── -->
+  <header class="header" style="margin-top: 56px;">
     <div class="header-left">
       <div class="logo">
         <svg width="24" height="24" viewBox="0 0 28 28" fill="none">
-          <circle cx="14" cy="14" r="13" stroke="#00D4FF" stroke-width="2"/>
-          <line x1="14" y1="4" x2="14" y2="24" stroke="#00D4FF" stroke-width="2"/>
-          <line x1="4" y1="14" x2="24" y2="14" stroke="#00D4FF" stroke-width="2"/>
+          <circle cx="14" cy="14" r="13" stroke="var(--phone)" stroke-width="2"/>
+          <line x1="14" y1="4" x2="14" y2="24" stroke="var(--phone)" stroke-width="2"/>
+          <line x1="4" y1="14" x2="24" y2="14" stroke="var(--phone)" stroke-width="2"/>
           <circle cx="14" cy="14" r="3" fill="#7B2FFF"/>
         </svg>
         <span class="logo-text">Perception Core</span>
       </div>
     </div>
     <div class="header-right">
+      <!-- Theme toggle -->
+      <button class="theme-toggle" id="themeToggle" onclick="ThemeManager.toggle()" title="Toggle theme">
+        <svg class="sun" viewBox="0 0 24 24" fill="currentColor"><path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58a.996.996 0 0 0-1.41 0 .996.996 0 0 0 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37a.996.996 0 0 0-1.41 0 .996.996 0 0 0 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0a.996.996 0 0 0 0-1.41l-1.06-1.06zm1.06-10.96a.996.996 0 0 0 0-1.41.996.996 0 0 0-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06zM7.05 18.36a.996.996 0 0 0 0-1.41.996.996 0 0 0-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06z"/></svg>
+        <svg class="moon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 0 1-4.4 2.26 5.403 5.403 0 0 1-3.14-9.8c-.44-.06-.9-.1-1.36-.1z"/></svg>
+      </button>
+      <!-- Layout editor toggle -->
+      <button class="btn" id="layoutBtn" onclick="LayoutManager.toggle()" title="Customize layout">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M3 3v8h8V3H3zm6 6H5V5h4v4zm-6 4v8h8v-8H3zm6 6H5v-4h4v4zm4-16v8h8V3h-8zm6 6h-4V5h4v4zm-6 4v8h8v-8h-8zm6 6h-4v-4h4v4z"/></svg>
+      </button>
       <div class="conn-pill phone" id="phoneConn">
         <span class="conn-dot"></span> Phone
       </div>
@@ -49,9 +62,8 @@
     </div>
   </header>
 
-  <!-- ── Master Control Panel ──────────────────────────────────────── -->
+  <!-- ── Master Control Panel ─────────────────────────────────── -->
   <div class="master-control-panel">
-    <!-- Top actions row -->
     <div class="mcp-top">
       <div class="mode-selector" id="modeSelector">
         <button class="mode-btn active" data-mode="phone" onclick="setMode('phone')">
@@ -64,8 +76,8 @@
           <svg class="mode-icon" viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg> Compare
         </button>
       </div>
-      
-      <div style="display:flex; align-items:center; gap:12px;">
+
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
         <button class="btn" id="alignBtn" onclick="startAxisAlignment()">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg> Auto Align
         </button>
@@ -75,8 +87,7 @@
         <button class="btn" id="resetBtn" onclick="resetReference()" title="Return to absolute values">Reset</button>
       </div>
     </div>
-    
-    <!-- Bottom telemetry row -->
+
     <div class="mcp-bottom">
       <div class="sync-group">
         <div class="sync-metric">
@@ -88,7 +99,7 @@
           <span class="sync-val" id="syncMode">Absolute</span>
         </div>
         <div class="sync-metric">
-          <span class="sync-label">Rate (<span id="syncRateOut">50</span>Hz)</span>
+          <span class="sync-label" style="display:flex; align-items:center;">Rate (<span id="syncRateOut">50 Hz</span>)</span>
           <div class="rate-btns" style="margin-left: 8px;">
             <button class="rate-btn" onclick="setRate(10)">10</button>
             <button class="rate-btn" onclick="setRate(25)">25</button>
@@ -97,24 +108,45 @@
           </div>
         </div>
       </div>
-      
-      <!-- Calibration Badges -->
+
       <div class="sync-metric">
-        <span class="sync-label" style="margin-right: 4px;">CALIB STATUS</span>
-        <div class="calib-status-container" style="display: flex; gap: 4px; align-items: center;">
-          <div class="calib-badge" id="calibSys" style="padding: 2px 8px; font-size: 10px;">SYS: 0</div>
-          <div class="calib-badge" id="calibGyr" style="padding: 2px 8px; font-size: 10px;">GYR: 0</div>
-          <div class="calib-badge" id="calibAcc" style="padding: 2px 8px; font-size: 10px;">ACC: 0</div>
-          <div class="calib-badge" id="calibMag" style="padding: 2px 8px; font-size: 10px;">MAG: 0</div>
+        <span class="sync-label" style="margin-right: 4px;">CALIB</span>
+        <div style="display: flex; gap: 4px; align-items: center;">
+          <div class="calib-badge" id="calibSys">SYS: 0</div>
+          <div class="calib-badge" id="calibGyr">GYR: 0</div>
+          <div class="calib-badge" id="calibAcc">ACC: 0</div>
+          <div class="calib-badge" id="calibMag">MAG: 0</div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ── Main content ────────────────────────────────────────── -->
+  <!-- ── Recording Bar ────────────────────────────────────────── -->
+  <div class="recording-bar" id="recordingBar">
+    <button class="rec-btn record" id="recStartBtn" onclick="RecordingManager.toggleRecord()">
+      <span class="rec-dot" id="recDotIndicator"></span>
+      <span id="recStartLabel">Record</span>
+    </button>
+    <button class="rec-btn play" id="recPlayBtn" onclick="RecordingManager.togglePlayback()" disabled>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+      <span id="recPlayLabel">Play</span>
+    </button>
+    <button class="rec-btn download" id="recDownloadBtn" onclick="RecordingManager.download()" disabled>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg> Save
+    </button>
+    <div class="rec-stats">
+      <span>Duration: <strong id="recDuration">0.0s</strong></span>
+      <span>Frames: <strong id="recFrames">0</strong></span>
+    </div>
+    <div class="rec-timeline" id="recTimeline" onclick="RecordingManager.scrub(event)">
+      <div class="rec-timeline-fill" id="recTimelineFill"></div>
+    </div>
+  </div>
+
+  <!-- ── Main Content ─────────────────────────────────────────── -->
   <main class="main" id="main">
 
-    <!-- ═══ PHONE PANEL ════════════════════════════════════════ -->
+    <!-- ═══ PHONE PANEL ══════════════════════════════════════════ -->
     <section class="panel glass" id="phonePanel" data-label="Phone IMU">
       <div class="panel-header">
         <h2 class="panel-title phone-color">Phone Metrics</h2>
@@ -122,53 +154,77 @@
       </div>
 
       <!-- YPR Gauges -->
-      <div class="gauges-row">
-        <div class="gauge-wrap" data-axis="yaw">
-          <div id="gaugePhoneYaw" class="gauge-fill"></div>
-          <div class="gauge-info center">
-            <div class="gauge-label">YAW</div>
-            <div class="gauge-value mono" id="valPhoneYaw">+0.0°</div>
+      <div class="widget" data-widget="gauges-phone" id="widgetGaugesPhone">
+        <div class="gauges-row">
+          <div class="gauge-wrap" data-axis="yaw">
+            <svg class="gauge-svg" viewBox="0 0 100 55">
+              <path class="gauge-arc-bg" d="M 10 50 A 40 40 0 0 1 90 50" />
+              <path class="gauge-arc-fill" id="arcPhoneYaw" d="M 10 50 A 40 40 0 0 1 90 50" stroke="#00E5FF" />
+            </svg>
+            <div class="gauge-info">
+              <div class="gauge-label">YAW</div>
+              <div class="gauge-value mono" id="valPhoneYaw">+0.0°</div>
+            </div>
           </div>
-        </div>
-        <div class="gauge-wrap" data-axis="pitch">
-          <div id="gaugePhonePitch" class="gauge-fill"></div>
-          <div class="gauge-info center">
-            <div class="gauge-label">PITCH</div>
-            <div class="gauge-value mono" id="valPhonePitch">+0.0°</div>
+          <div class="gauge-wrap" data-axis="pitch">
+            <svg class="gauge-svg" viewBox="0 0 100 55">
+              <path class="gauge-arc-bg" d="M 10 50 A 40 40 0 0 1 90 50" />
+              <path class="gauge-arc-fill" id="arcPhonePitch" d="M 10 50 A 40 40 0 0 1 90 50" stroke="#D500F9" />
+            </svg>
+            <div class="gauge-info">
+              <div class="gauge-label">PITCH</div>
+              <div class="gauge-value mono" id="valPhonePitch">+0.0°</div>
+            </div>
           </div>
-        </div>
-        <div class="gauge-wrap" data-axis="roll">
-          <div id="gaugePhoneRoll" class="gauge-fill"></div>
-          <div class="gauge-info center">
-            <div class="gauge-label">ROLL</div>
-            <div class="gauge-value mono" id="valPhoneRoll">+0.0°</div>
+          <div class="gauge-wrap" data-axis="roll">
+            <svg class="gauge-svg" viewBox="0 0 100 55">
+              <path class="gauge-arc-bg" d="M 10 50 A 40 40 0 0 1 90 50" />
+              <path class="gauge-arc-fill" id="arcPhoneRoll" d="M 10 50 A 40 40 0 0 1 90 50" stroke="#FF6D00" />
+            </svg>
+            <div class="gauge-info">
+              <div class="gauge-label">ROLL</div>
+              <div class="gauge-value mono" id="valPhoneRoll">+0.0°</div>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Accel / Gyro charts -->
-      <div class="charts-grid">
-        <div class="chart-card glass-inner">
-          <div class="chart-title">Accelerometer <span class="chart-unit">m/s²</span></div>
-          <canvas id="chartPhoneAccel" class="line-chart"></canvas>
-          <div class="xyz-row" id="xyzPhoneAccel"></div>
-        </div>
-        <div class="chart-card glass-inner">
-          <div class="chart-title">Gyroscope <span class="chart-unit">rad/s</span></div>
-          <canvas id="chartPhoneGyro" class="line-chart"></canvas>
-          <div class="xyz-row" id="xyzPhoneGyro"></div>
-        </div>
-        <div class="chart-card glass-inner">
-          <div class="chart-title">Magnetometer <span class="chart-unit">μT</span></div>
-          <canvas id="chartPhoneMag" class="line-chart"></canvas>
-          <div class="xyz-row" id="xyzPhoneMag"></div>
+      <!-- Charts -->
+      <div class="widget" data-widget="charts-phone" id="widgetChartsPhone">
+        <div class="charts-grid">
+          <div class="chart-card glass-inner glass-shimmer" onclick="FullscreenManager.open('chartPhoneAccel', 'Phone Accelerometer')">
+            <div class="chart-title">Accelerometer <span class="chart-unit">m/s²</span></div>
+            <span class="fullscreen-hint">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg> Expand
+            </span>
+            <canvas id="chartPhoneAccel" class="line-chart"></canvas>
+            <div class="xyz-row" id="xyzPhoneAccel"></div>
+          </div>
+          <div class="chart-card glass-inner glass-shimmer" onclick="FullscreenManager.open('chartPhoneGyro', 'Phone Gyroscope')">
+            <div class="chart-title">Gyroscope <span class="chart-unit">rad/s</span></div>
+            <span class="fullscreen-hint">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg> Expand
+            </span>
+            <canvas id="chartPhoneGyro" class="line-chart"></canvas>
+            <div class="xyz-row" id="xyzPhoneGyro"></div>
+          </div>
+          <div class="chart-card glass-inner glass-shimmer" onclick="FullscreenManager.open('chartPhoneMag', 'Phone Magnetometer')">
+            <div class="chart-title">Magnetometer <span class="chart-unit">μT</span></div>
+            <span class="fullscreen-hint">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg> Expand
+            </span>
+            <canvas id="chartPhoneMag" class="line-chart"></canvas>
+            <div class="xyz-row" id="xyzPhoneMag"></div>
+          </div>
         </div>
       </div>
 
       <!-- 3D Cube -->
-      <div class="cube-card glass-inner">
-        <div class="chart-title">Spatial Orientation</div>
-        <canvas id="cubePhone" class="cube-canvas"></canvas>
+      <div class="widget" data-widget="cube-phone" id="widgetCubePhone">
+        <div class="cube-card glass-inner">
+          <div class="chart-title">Spatial Orientation</div>
+          <canvas id="cubePhone" class="cube-canvas"></canvas>
+        </div>
       </div>
     </section>
 
@@ -176,61 +232,77 @@
     <section class="panel glass" id="imuPanel" style="display:none">
       <div class="panel-header">
         <h2 class="panel-title imu-color">Hobby IMU Metrics</h2>
-        <span class="rate-badge imu-badge" id="imuRate">0 Hz</span>
+        <span class="rate-badge" id="imuRate">0 Hz</span>
       </div>
 
-      <div class="gauges-row">
-        <div class="gauge-wrap" data-axis="yaw">
-          <div id="gaugeImuYaw" class="gauge-fill"></div>
-          <div class="gauge-info center">
-            <div class="gauge-label">YAW</div>
-            <div class="gauge-value mono" id="valImuYaw">+0.0°</div>
+      <div class="widget" data-widget="gauges-imu" id="widgetGaugesImu">
+        <div class="gauges-row">
+          <div class="gauge-wrap" data-axis="yaw">
+            <svg class="gauge-svg" viewBox="0 0 100 55">
+              <path class="gauge-arc-bg" d="M 10 50 A 40 40 0 0 1 90 50" />
+              <path class="gauge-arc-fill" id="arcImuYaw" d="M 10 50 A 40 40 0 0 1 90 50" stroke="#00E5FF" />
+            </svg>
+            <div class="gauge-info">
+              <div class="gauge-label">YAW</div>
+              <div class="gauge-value mono" id="valImuYaw">+0.0°</div>
+            </div>
           </div>
-        </div>
-        <div class="gauge-wrap" data-axis="pitch">
-          <div id="gaugeImuPitch" class="gauge-fill"></div>
-          <div class="gauge-info center">
-            <div class="gauge-label">PITCH</div>
-            <div class="gauge-value mono" id="valImuPitch">+0.0°</div>
+          <div class="gauge-wrap" data-axis="pitch">
+            <svg class="gauge-svg" viewBox="0 0 100 55">
+              <path class="gauge-arc-bg" d="M 10 50 A 40 40 0 0 1 90 50" />
+              <path class="gauge-arc-fill" id="arcImuPitch" d="M 10 50 A 40 40 0 0 1 90 50" stroke="#D500F9" />
+            </svg>
+            <div class="gauge-info">
+              <div class="gauge-label">PITCH</div>
+              <div class="gauge-value mono" id="valImuPitch">+0.0°</div>
+            </div>
           </div>
-        </div>
-        <div class="gauge-wrap" data-axis="roll">
-          <div id="gaugeImuRoll" class="gauge-fill"></div>
-          <div class="gauge-info center">
-            <div class="gauge-label">ROLL</div>
-            <div class="gauge-value mono" id="valImuRoll">+0.0°</div>
+          <div class="gauge-wrap" data-axis="roll">
+            <svg class="gauge-svg" viewBox="0 0 100 55">
+              <path class="gauge-arc-bg" d="M 10 50 A 40 40 0 0 1 90 50" />
+              <path class="gauge-arc-fill" id="arcImuRoll" d="M 10 50 A 40 40 0 0 1 90 50" stroke="#FF6D00" />
+            </svg>
+            <div class="gauge-info">
+              <div class="gauge-label">ROLL</div>
+              <div class="gauge-value mono" id="valImuRoll">+0.0°</div>
+            </div>
           </div>
-        </div>
-      </div>
-
-      <div class="charts-grid">
-        <div class="chart-card glass-inner">
-          <div class="chart-title">Accelerometer <span class="chart-unit">m/s²</span></div>
-          <canvas id="chartImuAccel" class="line-chart"></canvas>
-          <div class="xyz-row" id="xyzImuAccel"></div>
-        </div>
-        <div class="chart-card glass-inner">
-          <div class="chart-title">Gyroscope <span class="chart-unit">rad/s</span></div>
-          <canvas id="chartImuGyro" class="line-chart"></canvas>
-          <div class="xyz-row" id="xyzImuGyro"></div>
-        </div>
-        <div class="chart-card glass-inner">
-          <div class="chart-title">Magnetometer <span class="chart-unit">μT</span></div>
-          <canvas id="chartImuMag" class="line-chart"></canvas>
-          <div class="xyz-row" id="xyzImuMag"></div>
         </div>
       </div>
 
-      <div class="cube-card glass-inner">
-        <div class="chart-title">Spatial Orientation</div>
-        <canvas id="cubeImu" class="cube-canvas"></canvas>
+      <div class="widget" data-widget="charts-imu" id="widgetChartsImu">
+        <div class="charts-grid">
+          <div class="chart-card glass-inner glass-shimmer" onclick="FullscreenManager.open('chartImuAccel', 'IMU Accelerometer')">
+            <div class="chart-title">Accelerometer <span class="chart-unit">m/s²</span></div>
+            <span class="fullscreen-hint"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg> Expand</span>
+            <canvas id="chartImuAccel" class="line-chart"></canvas>
+            <div class="xyz-row" id="xyzImuAccel"></div>
+          </div>
+          <div class="chart-card glass-inner glass-shimmer" onclick="FullscreenManager.open('chartImuGyro', 'IMU Gyroscope')">
+            <div class="chart-title">Gyroscope <span class="chart-unit">rad/s</span></div>
+            <span class="fullscreen-hint"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg> Expand</span>
+            <canvas id="chartImuGyro" class="line-chart"></canvas>
+            <div class="xyz-row" id="xyzImuGyro"></div>
+          </div>
+          <div class="chart-card glass-inner glass-shimmer" onclick="FullscreenManager.open('chartImuMag', 'IMU Magnetometer')">
+            <div class="chart-title">Magnetometer <span class="chart-unit">μT</span></div>
+            <span class="fullscreen-hint"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg> Expand</span>
+            <canvas id="chartImuMag" class="line-chart"></canvas>
+            <div class="xyz-row" id="xyzImuMag"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="widget" data-widget="cube-imu" id="widgetCubeImu">
+        <div class="cube-card glass-inner">
+          <div class="chart-title">Spatial Orientation</div>
+          <canvas id="cubeImu" class="cube-canvas"></canvas>
+        </div>
       </div>
     </section>
 
     <!-- ═══ COMPARE PANEL ════════════════════════════════════════ -->
     <section class="panel" id="bothPanel" style="display:none; padding: 0;">
-
-      <!-- Delta / Error section -->
       <div class="delta-row">
         <div class="delta-card glass">
           <div class="delta-label">Δ Yaw Error</div>
@@ -249,8 +321,7 @@
         </div>
       </div>
 
-      <!-- Two cubes side by side -->
-      <div class="compare-cubes" style="margin-top: 16px;">
+      <div class="compare-cubes" style="margin-top: 14px;">
         <div class="compare-cube-wrap glass">
           <div class="panel-header">
             <h2 class="panel-title phone-color">Phone Frame</h2>
@@ -267,62 +338,82 @@
         </div>
       </div>
 
-      <!-- Overlaid YPR chart -->
-      <div class="chart-card glass" style="margin-top: 16px; padding: 24px;">
+      <div class="chart-card glass" style="margin-top: 14px; padding: 24px;" onclick="FullscreenManager.open('chartOverlayYaw', 'Yaw Overlay Analysis')">
         <div class="chart-title">
-          Yaw Overlay Analysis
+          Yaw Overlay
           <span class="legend-dot" style="background:#00E5FF"></span><span class="legend-label mono">Phone</span>
           <span class="legend-dot" style="background:#FF6D00"></span><span class="legend-label mono">IMU</span>
         </div>
+        <span class="fullscreen-hint"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg> Expand</span>
         <canvas id="chartOverlayYaw" class="line-chart" style="height: 180px;"></canvas>
       </div>
 
-      <!-- Side-by-side YPR table -->
-      <div class="compare-table-wrap glass" style="margin-top: 16px; padding: 12px 24px;">
+      <div class="compare-table-wrap glass" style="margin-top: 14px; padding: 12px 24px;">
         <table class="compare-table">
           <thead>
             <tr>
-              <th>Matrix</th>
-              <th class="phone-color">Phone Ref</th>
-              <th class="imu-color">Hobby IMU</th>
-              <th class="diff-color">Δ Deviation</th>
+              <th>Axis</th>
+              <th class="phone-color">Phone</th>
+              <th class="imu-color">IMU</th>
+              <th class="diff-color">Δ Error</th>
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td>Yaw</td>
-              <td class="mono" id="cmpPhoneYaw">—</td>
-              <td class="mono" id="cmpImuYaw">—</td>
-              <td class="mono diff-color" id="cmpDeltaYaw">—</td>
-            </tr>
-            <tr>
-              <td>Pitch</td>
-              <td class="mono" id="cmpPhonePitch">—</td>
-              <td class="mono" id="cmpImuPitch">—</td>
-              <td class="mono diff-color" id="cmpDeltaPitch">—</td>
-            </tr>
-            <tr>
-              <td>Roll</td>
-              <td class="mono" id="cmpPhoneRoll">—</td>
-              <td class="mono" id="cmpImuRoll">—</td>
-              <td class="mono diff-color" id="cmpDeltaRoll">—</td>
-            </tr>
+            <tr><td>Yaw</td><td class="mono" id="cmpPhoneYaw">—</td><td class="mono" id="cmpImuYaw">—</td><td class="mono diff-color" id="cmpDeltaYaw">—</td></tr>
+            <tr><td>Pitch</td><td class="mono" id="cmpPhonePitch">—</td><td class="mono" id="cmpImuPitch">—</td><td class="mono diff-color" id="cmpDeltaPitch">—</td></tr>
+            <tr><td>Roll</td><td class="mono" id="cmpPhoneRoll">—</td><td class="mono" id="cmpImuRoll">—</td><td class="mono diff-color" id="cmpDeltaRoll">—</td></tr>
           </tbody>
         </table>
       </div>
-
     </section>
 
-    <!-- ═══ MODALS ═══════════════════════════════════════════════ -->
+    <!-- ═══ ALIGNMENT MODAL ══════════════════════════════════════ -->
     <div id="alignModal" class="align-modal glass" style="display: none;">
       <h3 class="align-title">Axis Alignment Calibration</h3>
-      <p class="align-desc">Hold Phone and IMU firmly together. Wiggle randomly in all directions (Pitch, Roll, Yaw) to correlate and sync axes.</p>
+      <p class="align-desc">Hold Phone and IMU firmly together. Wiggle randomly in all directions to correlate and sync axes.</p>
       <div class="align-timer mono" id="alignTimer">10</div>
     </div>
 
   </main>
 
-  <!-- SocketIO + Three.js -->
+  <!-- ── Fullscreen Chart Modal ───────────────────────────────── -->
+  <div class="fullscreen-modal" id="fullscreenModal" onclick="FullscreenManager.close(event)">
+    <div class="fullscreen-content" onclick="event.stopPropagation()">
+      <div class="fullscreen-header">
+        <div class="fullscreen-title" id="fullscreenTitle">Chart</div>
+        <div class="fullscreen-actions">
+          <button class="btn" onclick="FullscreenManager.exportPNG()" title="Download as PNG">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg> PNG
+          </button>
+          <button class="fullscreen-close" onclick="FullscreenManager.close()" title="Close">&times;</button>
+        </div>
+      </div>
+      <canvas id="fullscreenChart" class="fullscreen-chart"></canvas>
+    </div>
+  </div>
+
+  <!-- ── Layout Editor Sidebar ────────────────────────────────── -->
+  <div class="layout-editor" id="layoutEditor">
+    <div class="layout-editor-title">
+      Dashboard Layout
+      <button class="layout-editor-close" onclick="LayoutManager.toggle()">&times;</button>
+    </div>
+    <p style="font-size: 12px; color: var(--text3); line-height: 1.5;">Toggle widgets on/off and choose presets. Layout is saved automatically.</p>
+
+    <div style="font-size: 11px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; margin-top: 8px;">Presets</div>
+    <div style="display: flex; gap: 8px;">
+      <button class="layout-preset-btn active" onclick="LayoutManager.preset('full')">Full</button>
+      <button class="layout-preset-btn" onclick="LayoutManager.preset('compact')">Compact</button>
+      <button class="layout-preset-btn" onclick="LayoutManager.preset('charts')">Charts Only</button>
+    </div>
+
+    <div style="font-size: 11px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; margin-top: 12px;">Widgets</div>
+    <div id="widgetToggles" style="display: flex; flex-direction: column; gap: 6px;">
+      <!-- Populated by LayoutManager -->
+    </div>
+  </div>
+
+  <!-- ── Scripts ──────────────────────────────────────────────── -->
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="app.js"></script>

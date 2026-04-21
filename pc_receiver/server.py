@@ -27,6 +27,7 @@ import traceback
 from collections import deque
 from typing import Optional
 import time
+import math
 from datetime import datetime
 import numpy as np
 from scipy.optimize import minimize
@@ -373,22 +374,37 @@ def serial_listener(port: str, baud: int):
                             perm = imu_axis_map["perm"]
                             sign = imu_axis_map["sign"]
                             
+                            # Map spatial vectors from IMU space to Android [X=East, Y=North, Z=Up]
+                            # The e2v mapping translates Euler index to vector axis index:
+                            #   Euler 0 (yaw) = about Z (vector idx 2)
+                            #   Euler 1 (pitch) = about X (vector idx 0)
+                            #   Euler 2 (roll) = about Y (vector idx 1)
                             def map_vec(v):
                                 if len(v) != 3: return [0,0,0]
-                                return [sign[0]*v[perm[0]], sign[1]*v[perm[1]], sign[2]*v[perm[2]]]
+                                e2v = {0: 2, 1: 0, 2: 1}
+                                return [
+                                    sign[1] * v[e2v[perm[1]]],  # Phone X correlates to Pitch
+                                    sign[2] * v[e2v[perm[2]]],  # Phone Y correlates to Roll
+                                    sign[0] * v[e2v[perm[0]]]   # Phone Z correlates to Yaw
+                                ]
                                 
+                            # Chip's Euler mapping — direct permutation of the hardware DMP output
                             mapped_e = {
                                 "yaw":   sign[0] * raw_e["yaw" if perm[0]==0 else "pitch" if perm[0]==1 else "roll"],
                                 "pitch": sign[1] * raw_e["yaw" if perm[1]==0 else "pitch" if perm[1]==1 else "roll"],
                                 "roll":  sign[2] * raw_e["yaw" if perm[2]==0 else "pitch" if perm[2]==1 else "roll"],
                             }
-                            
-                            # Also remap raw vectors for the fusion algorithms
+                                
                             acc_mapped = map_vec(raw_acc)
                             gyr_mapped = map_vec(raw_gyr)
                             mag_mapped = map_vec(raw_mag)
                             
-                            # Run fusion algorithms
+                            # ── Run fusion algorithms on mapped ENU vectors ─────────
+                            # The filters internally compute:
+                            #   filter_roll  = atan2(ay, az)  → tilt about X(East) = Android pitch
+                            #   filter_pitch = atan2(-ax,...) → tilt about Y(North) = Android roll  
+                            #   filter_yaw   = gz integration  → rotation about Z(Up) = -Android yaw
+                            # So output mapping: {yaw: -filter_yaw, pitch: -filter_roll, roll: -filter_pitch}
                             global last_fusion_ts
                             dt_fusion = pc_ts - last_fusion_ts if last_fusion_ts > 0 else 0.02
                             last_fusion_ts = pc_ts
@@ -397,9 +413,15 @@ def serial_listener(port: str, baud: int):
                                 t_start = time.perf_counter()
                                 filt.update(acc_mapped, gyr_mapped, mag_mapped, dt_fusion)
                                 t_end = time.perf_counter()
-                                fusion_results[name] = filt.get_euler()
                                 
-                                # Extremely simple low-pass filter on computation time
+                                raw_filt_e = filt.get_euler()
+                                mapped_filt_e = {
+                                    "yaw":   -raw_filt_e["yaw"],
+                                    "pitch": -raw_filt_e["roll"],
+                                    "roll":  -raw_filt_e["pitch"]
+                                }
+                                fusion_results[name] = mapped_filt_e
+                                
                                 us = (t_end - t_start) * 1e6
                                 fusion_compute_us[name] = fusion_compute_us[name] * 0.95 + us * 0.05
 
@@ -413,6 +435,7 @@ def serial_listener(port: str, baud: int):
                                 "calib":     parsed.get("calib", [0, 0, 0, 0]),
                                 "euler":     mapped_e,
                                 "raw_euler": raw_e,
+                                "raw_gyro":  raw_gyr,
                                 "rate_hz":   round(rate, 1),
                             })
                             if recording:
@@ -499,7 +522,7 @@ def broadcaster():
                             P -= np.mean(P, axis=0)
                             I -= np.mean(I, axis=0)
 
-                            # Diagnostics — how much motion was there?
+                            # Diagnostics
                             p_std = np.std(P, axis=0)
                             i_std = np.std(I, axis=0)
                             labels = ["Yaw", "Pitch", "Roll"]
@@ -599,11 +622,11 @@ def broadcaster():
             fusion_payload = {
                 "phone": {"yaw": p_euler["yaw"], "pitch": p_euler["pitch"], "roll": p_euler["roll"]},
                 "chip": {"yaw": m_euler["yaw"], "pitch": m_euler["pitch"], "roll": m_euler["roll"]},
-                "complementary": dict(fusion_results["complementary"]),
-                "comp_quat": dict(fusion_results["comp_quat"]),
-                "madgwick": dict(fusion_results["madgwick"]),
-                "mahony": dict(fusion_results["mahony"]),
-                "ekf": dict(fusion_results["ekf"]),
+                "complementary": apply_offset(fusion_results["complementary"], imu_offset) if zeroed else dict(fusion_results["complementary"]),
+                "comp_quat": apply_offset(fusion_results["comp_quat"], imu_offset) if zeroed else dict(fusion_results["comp_quat"]),
+                "madgwick": apply_offset(fusion_results["madgwick"], imu_offset) if zeroed else dict(fusion_results["madgwick"]),
+                "mahony": apply_offset(fusion_results["mahony"], imu_offset) if zeroed else dict(fusion_results["mahony"]),
+                "ekf": apply_offset(fusion_results["ekf"], imu_offset) if zeroed else dict(fusion_results["ekf"]),
                 "compute_us": {k: int(v) for k, v in fusion_compute_us.items()}
             }
 
@@ -738,11 +761,16 @@ def on_run_auto_tune():
             acc = [im["ax"], im["ay"], im["az"]]
             gyr = [im["gx"], im["gy"], im["gz"]]
             mag = [im["mx"], im["my"], im["mz"]]
+            
+            # Feed ENU vectors directly (same as live pipeline)
             f.update(acc, gyr, mag, mean_dt)
             e = f.get_euler()
-            rms_sq += angle_diff(ref["yaw"], e["yaw"])**2
-            rms_sq += angle_diff(ref["pitch"], e["pitch"])**2
-            rms_sq += angle_diff(ref["roll"], e["roll"])**2
+            # Same output mapping as live: filter_roll→pitch, filter_pitch→roll, yaw negated
+            e_mapped = {"yaw": -e["yaw"], "pitch": -e["roll"], "roll": -e["pitch"]}
+            
+            rms_sq += angle_diff(ref["yaw"], e_mapped["yaw"])**2
+            rms_sq += angle_diff(ref["pitch"], e_mapped["pitch"])**2
+            rms_sq += angle_diff(ref["roll"], e_mapped["roll"])**2
         return math.sqrt(rms_sq / (len(paired) * 3))
         
     # Optimizing Complementary (alpha)
