@@ -530,25 +530,41 @@ h1, h2, h3, h4 { letter-spacing: -0.02em; font-weight: 600; }
   transition: all 0.3s ease;
 }
 .gauge-wrap:hover { border-color: var(--glass-border-lt); }
+/* Static ambient glow at bottom of gauge card */
 .gauge-wrap::after {
-  content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0.04;
+  content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0.12;
+  transition: opacity 0.4s ease;
 }
-.gauge-wrap[data-axis="yaw"]::after   { background: radial-gradient(circle at 50% 100%, #00E5FF, transparent 70%); }
-.gauge-wrap[data-axis="pitch"]::after { background: radial-gradient(circle at 50% 100%, #D500F9, transparent 70%); }
-.gauge-wrap[data-axis="roll"]::after  { background: radial-gradient(circle at 50% 100%, #FF6D00, transparent 70%); }
+.gauge-wrap[data-axis="yaw"]::after   { background: radial-gradient(ellipse 80% 60% at 50% 100%, #00E5FF, transparent 70%); }
+.gauge-wrap[data-axis="pitch"]::after { background: radial-gradient(ellipse 80% 60% at 50% 100%, #D500F9, transparent 70%); }
+.gauge-wrap[data-axis="roll"]::after  { background: radial-gradient(ellipse 80% 60% at 50% 100%, #FF6D00, transparent 70%); }
 
 /* SVG Arc Gauge */
-.gauge-svg { width: 100px; height: 60px; }
+.gauge-svg { width: 100px; height: 60px; position: relative; z-index: 1; }
 .gauge-arc-bg { fill: none; stroke: var(--glass-border); stroke-width: 6; stroke-linecap: round; }
-.gauge-arc-fill { fill: none; stroke-width: 6; stroke-linecap: round; transition: stroke-dashoffset 0.4s cubic-bezier(0.16, 1, 0.3, 1); filter: drop-shadow(0 0 4px currentColor); }
+.gauge-arc-fill { fill: none; stroke-width: 6; stroke-linecap: round; transition: stroke-dashoffset 0.4s cubic-bezier(0.16, 1, 0.3, 1); filter: drop-shadow(0 0 6px currentColor); }
 
+/* Dynamic value-driven fill — scales from bottom */
 .gauge-fill {
   position: absolute;
-  bottom: 0; left: 0; right: 0; top: 0;
+  bottom: 0; left: 0; right: 0;
+  height: 100%;
   transform-origin: bottom;
   transform: scaleY(0);
-  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
   z-index: 0;
+  border-radius: inherit;
+  opacity: 0.9;
+}
+/* Per-axis fill gradients */
+.gauge-wrap[data-axis="yaw"] .gauge-fill {
+  background: linear-gradient(to top, rgba(0, 229, 255, 0.25), rgba(0, 229, 255, 0.03));
+}
+.gauge-wrap[data-axis="pitch"] .gauge-fill {
+  background: linear-gradient(to top, rgba(213, 0, 249, 0.25), rgba(213, 0, 249, 0.03));
+}
+.gauge-wrap[data-axis="roll"] .gauge-fill {
+  background: linear-gradient(to top, rgba(255, 109, 0, 0.25), rgba(255, 109, 0, 0.03));
 }
 
 .gauge-info {

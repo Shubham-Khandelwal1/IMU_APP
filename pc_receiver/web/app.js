@@ -745,6 +745,15 @@ const cubes = {
 const fmt = (v, d=2) => (v >= 0 ? '+' : '') + v.toFixed(d);
 const set = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
 
+// Drive the background fill div (scaleY 0..1 based on fraction)
+function setFill(fillId, fraction) {
+  const el = document.getElementById(fillId);
+  if (el) {
+    const f = Math.max(0, Math.min(1, fraction));
+    el.style.transform = `scaleY(${f})`;
+  }
+}
+
 function xyzHtml(x, y, z) {
   return `<span style="color:#FF5252">X ${fmt(x,3)}</span>
           <span style="color:#69F0AE">Y ${fmt(y,3)}</span>
@@ -804,9 +813,13 @@ function handleSensorData(data) {
   // ── Phone panel ──────────────────────────────────────────────
   if (currentMode === 'phone' || currentMode === 'both') {
     const e = p.euler;
-    gauges.phoneYaw  .set((e.yaw   + 180) / 360);
-    gauges.phonePitch.set((e.pitch  + 90) / 180);
-    gauges.phoneRoll .set((e.roll  + 180) / 360);
+    const fYaw = (e.yaw + 180) / 360, fPitch = (e.pitch + 90) / 180, fRoll = (e.roll + 180) / 360;
+    gauges.phoneYaw  .set(fYaw);
+    gauges.phonePitch.set(fPitch);
+    gauges.phoneRoll .set(fRoll);
+    setFill('fillPhoneYaw',   fYaw);
+    setFill('fillPhonePitch', fPitch);
+    setFill('fillPhoneRoll',  fRoll);
     set('valPhoneYaw',   fmt(e.yaw,   1) + '°');
     set('valPhonePitch', fmt(e.pitch, 1) + '°');
     set('valPhoneRoll',  fmt(e.roll,  1) + '°');
@@ -829,9 +842,13 @@ function handleSensorData(data) {
   // ── IMU panel ────────────────────────────────────────────────
   if (currentMode === 'imu' || currentMode === 'both') {
     const e = m.euler;
-    gauges.imuYaw  .set((e.yaw   + 180) / 360);
-    gauges.imuPitch.set((e.pitch  + 90) / 180);
-    gauges.imuRoll .set((e.roll  + 180) / 360);
+    const fYaw = (e.yaw + 180) / 360, fPitch = (e.pitch + 90) / 180, fRoll = (e.roll + 180) / 360;
+    gauges.imuYaw  .set(fYaw);
+    gauges.imuPitch.set(fPitch);
+    gauges.imuRoll .set(fRoll);
+    setFill('fillImuYaw',   fYaw);
+    setFill('fillImuPitch', fPitch);
+    setFill('fillImuRoll',  fRoll);
     set('valImuYaw',   fmt(e.yaw,   1) + '°');
     set('valImuPitch', fmt(e.pitch, 1) + '°');
     set('valImuRoll',  fmt(e.roll,  1) + '°');
