@@ -20,16 +20,16 @@ The system consists of three integrated components designed for embedded systems
 
 ```mermaid
 graph TD
-    A[Android App] -- UDP (8765) --> B[Python Server]
-    C[Hobby IMU (STM32/ESP32)] -- Serial/USB CDC --> B
-    B -- WebSockets (5000) --> D[Web Dashboard]
-    B -- WebSockets (5000) --> E[Research Dashboard]
+    A["Android App"] -- "UDP (8765)" --> B["Python Server"]
+    C["Hobby IMU (STM32/ESP32)"] -- "Serial/USB CDC" --> B
+    B -- "WebSockets (5000)" --> D["Web Dashboard"]
+    B -- "WebSockets (5000)" --> E["Research Dashboard"]
     
-    subgraph "Processing Pipeline"
-        B --> F[Rate Matching]
-        B --> G[Axis Alignment]
-        B --> H[Zero Referencing]
-        B --> I[Sensor Fusion]
+    subgraph Processing Pipeline
+        B --> F["Rate Matching"]
+        B --> G["Axis Alignment"]
+        B --> H["Zero Referencing"]
+        B --> I["Sensor Fusion"]
     end
 ```
 
